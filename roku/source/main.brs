@@ -16,7 +16,18 @@ sub Main(args as Dynamic)
     for each path in ["pkg:/fonts/cjk.otf", "pkg:/fonts/cjk.ttf"]
         if fs.Exists(path) then cjkFont = path
     end for
-    screen.GetGlobalNode().addFields({ cjkFont: cjkFont })
+    ' Danmaku settings (keys kept lowercase: associative-array keys are case-insensitive).
+    dm = { enabled: true, scroll: true, fixed: true, color: true, avoidsubs: false, area: 50, opacity: 100, size: 100, speed: 3 }
+    saved = CreateObject("roRegistrySection", "danmaku")
+    if saved.Exists("settings")
+        stored = ParseJson(saved.Read("settings"))
+        if stored <> invalid
+            for each key in stored
+                dm[LCase(key)] = stored[key]
+            end for
+        end if
+    end if
+    screen.GetGlobalNode().addFields({ cjkFont: cjkFont, dmSettings: dm })
 
     scene = screen.CreateScene("MainScene")
     screen.Show()

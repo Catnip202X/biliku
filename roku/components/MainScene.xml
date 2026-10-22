@@ -38,12 +38,8 @@
 
     <DanmakuLayer id="danmaku" />
 
-    <!-- Quality / danmaku menu during playback (press *) -->
-    <Group id="qualityMenu" visible="false" translation="[1280,0]">
-      <Rectangle width="640" height="1080" color="0x0B0E12EC" />
-      <Label id="qualityTitle" text="画质  ·  Quality" translation="[56,80]" font="font:LargeBoldSystemFont" color="0xF2F5F8FF" />
-      <LabelList id="qualityList" translation="[56,170]" itemSize="[528,76]" color="0xC8D0D8FF" focusedColor="0x101418FF" focusBitmapBlendColor="0x5BC8F5FF" />
-    </Group>
+    <!-- In-player bar (press ↓ during playback) -->
+    <PlayerControls id="controls" visible="false" />
 
     <!-- The Video node's own title bar can't use a custom font (Chinese shows as boxes),
          so the player gets no title and this overlay shows it instead. -->

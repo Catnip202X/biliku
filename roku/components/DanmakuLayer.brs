@@ -33,10 +33,93 @@ sub init()
     m.serial = 0
     m.spawned = 0
 
+    m.showScroll = true
+    m.showFixed = true
+    m.showColor = true
+    m.avoidSubs = false
+    m.fontScale = 1.0
+    m.blockWords = []
+    m.blockPatterns = []
+    m.blockUsers = {}
+
     m.timer = m.top.findNode("tick")
     m.timer.observeField("fire", "onTick")
     m.timer.control = "start"
 end sub
+
+sub onSettings()
+    st = m.top.settings
+    if st = invalid then return
+    m.showScroll = (st.scroll = true)
+    m.showFixed = (st.fixed = true)
+    m.showColor = (st.color = true)
+    m.avoidSubs = (st.avoidsubs = true)
+    m.fontScale = st.size / 100
+    m.LANE_HEIGHT = Int(54 * m.fontScale)
+    speeds = [12000, 10000, 8000, 6500, 5000]
+    index = st.speed - 1
+    if index < 0 then index = 0
+    if index > 4 then index = 4
+    m.SCROLL_MS = speeds[index]
+    ' 显示区域: share of the screen (from the top) that scrolling danmaku may use.
+    usable = 1080 * st.area / 100
+    if m.avoidSubs and usable > 860 then usable = 860
+    lanes = Int((usable - m.FIRST_LANE_Y) / m.LANE_HEIGHT)
+    if lanes < 1 then lanes = 1
+    m.LANES = lanes
+    m.laneFree = []
+    for i = 0 to m.LANES - 1
+        m.laneFree.Push(0)
+    end for
+    m.top.opacity = st.opacity / 100
+    if m.global.cjkFont <> ""
+        m.font = CreateObject("roSGNode", "Font")
+        m.font.uri = m.global.cjkFont
+        m.font.size = Int(38 * m.fontScale)
+    end if
+    clearAll()
+end sub
+
+sub onFilters()
+    f = m.top.filters
+    m.blockWords = []
+    m.blockPatterns = []
+    m.blockUsers = {}
+    if f = invalid then return
+    if f.keywords <> invalid then m.blockWords = f.keywords
+    if f.users <> invalid
+        for each u in f.users
+            m.blockUsers[u] = true
+        end for
+    end if
+    if f.patterns <> invalid
+        for each pattern in f.patterns
+            re = CreateObject("roRegex", pattern, "i")
+            if re <> invalid then m.blockPatterns.Push(re)
+        end for
+    end if
+end sub
+
+' Type filters (滚动 / 固定 / 彩色) and the account block list.
+function isHidden(item as Object) as Boolean
+    if item.mode = 4 or item.mode = 5
+        if not m.showFixed then return true
+    else if not m.showScroll
+        return true
+    end if
+    if not m.showColor and item.color <> &hFFFFFF then return true
+    if item.hash <> invalid and item.hash <> "" and m.blockUsers.DoesExist(item.hash) then return true
+    if m.blockWords.Count() > 0 or m.blockPatterns.Count() > 0
+        lower = LCase(item.text)
+        for each word in m.blockWords
+            if Instr(1, lower, word) > 0 then return true
+        end for
+        for each re in m.blockPatterns
+            if re.IsMatch(item.text) then return true
+        end for
+    end if
+    return false
+end function
 
 ' Current playback time in ms, interpolated between the player's position updates.
 function nowMs() as Integer
@@ -100,7 +183,7 @@ sub onTick()
         item = m.items[m.nextItem]
         m.nextItem = m.nextItem + 1
         ' Skip comments that are already well in the past (e.g. after buffering).
-        if now - item.t < 1500 and m.live.Count() < m.MAX_ON_SCREEN then spawn(item, now)
+        if now - item.t < 1500 and m.live.Count() < m.MAX_ON_SCREEN and not isHidden(item) then spawn(item, now)
     end while
 end sub
 
@@ -142,7 +225,11 @@ sub spawn(item as Object, now as Integer)
         end if
         slots[slot] = now + m.FIXED_MS
         y = m.FIRST_LANE_Y + slot * m.LANE_HEIGHT
-        if item.mode = 4 then y = 1080 - 140 - slot * m.LANE_HEIGHT
+        if item.mode = 4
+            bottom = 1080 - 140
+            if m.avoidSubs then bottom = 860 - m.LANE_HEIGHT
+            y = bottom - slot * m.LANE_HEIGHT
+        end if
         g.translation = [Int((1920 - width) / 2), y]
         anim.duration = m.FIXED_MS / 1000
         fade = anim.createChild("FloatFieldInterpolator")

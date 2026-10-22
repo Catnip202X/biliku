@@ -1,8 +1,9 @@
-**New:** videos resume exactly where you closed them (with Back, or Stop from the phone). Casts follow the phone's position.
+**New in 0.2.0:**
+- **Player bar:** press **↓** during playback for play/pause, a progress bar with chapter marks, **章节** chapter list, **选集** part list, **画质** quality, a **弹幕** on/off switch and **弹幕设置**.
+- **Danmaku settings:** show or hide scrolling / top & bottom / coloured danmaku, **防挡字幕** (keep clear of subtitles), display area, opacity, size and speed. Remembered on the TV.
+- **Block list sync:** your Bilibili account's blocked danmaku keywords, patterns and users are applied on the TV.
 
-**Fix:** pause, stop, the ±10 s buttons and dragging the progress bar in the Bilibili app's cast (投屏) screen now work. The TV app was ignoring cast commands that didn't carry a video link.
-
-Update both parts: run the new companion, choose **1. Install / update 云屏**, then **3** to restart the cast receiver with the new version.
+Update the Roku app with the companion (option **1**).
 
 **Downloads:**
 - Windows: `biliku-windows.exe`

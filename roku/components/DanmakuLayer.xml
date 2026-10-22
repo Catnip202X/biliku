@@ -6,6 +6,10 @@
     <field id="position" type="float" onChange="onPosition" />
     <field id="playing" type="boolean" value="false" onChange="onPlaying" />
     <field id="enabled" type="boolean" value="true" onChange="onEnabled" />
+    <!-- { scroll, fixed, color, avoidsubs: Boolean; area, opacity, size: percent; speed: 1-5 } -->
+    <field id="settings" type="assocarray" onChange="onSettings" />
+    <!-- Account block list: { keywords, patterns, users } -->
+    <field id="filters" type="assocarray" onChange="onFilters" />
   </interface>
   <script type="text/brightscript" uri="pkg:/components/DanmakuLayer.brs" />
   <children>

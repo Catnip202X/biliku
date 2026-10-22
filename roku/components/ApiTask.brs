@@ -23,6 +23,13 @@ sub run()
         m.top.response = qrGenerate()
     else if req.kind = "qrPoll"
         m.top.response = qrPoll(req.key)
+    else if req.kind = "dmFilters"
+        m.top.response = fetchDmFilters()
+    else if req.kind = "saveDmSettings"
+        sec = CreateObject("roRegistrySection", "danmaku")
+        sec.Write("settings", FormatJson(req.settings))
+        sec.Flush()
+        m.top.response = { kind: "saveDmSettings" }
     else if req.kind = "savePosition"
         ' Per-video resume point, saved when the video is closed. Cleared when it's finished (or closed
         ' in its last few seconds) so a watched video starts fresh next time.
@@ -235,10 +242,10 @@ sub parseDmSegment(b as Object, items as Object)
     end while
 end sub
 
-' DanmakuElem: 2 progress (ms), 3 mode, 5 color, 7 content. Other fields are skipped.
+' DanmakuElem: 2 progress (ms), 3 mode, 5 color, 6 sender hash, 7 content. Other fields are skipped.
 function parseDmElem(b as Object, start as Integer, finish as Integer) as Dynamic
     st = { i: start }
-    e = { t: 0, mode: 1, color: &hFFFFFF, text: "" }
+    e = { t: 0, mode: 1, color: &hFFFFFF, text: "", hash: "" }
     while st.i < finish
         key = pbVarint(b, st)
         field = key >> 3
@@ -254,12 +261,12 @@ function parseDmElem(b as Object, start as Integer, finish as Integer) as Dynami
             end if
         else if wire = 2
             size = pbVarint(b, st)
-            if field = 7
+            if field = 6 or field = 7
                 text = CreateObject("roByteArray")
                 for k = st.i to st.i + size - 1
                     text.Push(b[k])
                 end for
-                e.text = text.ToAsciiString()
+                if field = 7 then e.text = text.ToAsciiString() else e.hash = LCase(text.ToAsciiString())
             end if
             st.i = st.i + size
         else if wire = 5
@@ -288,6 +295,33 @@ function pbVarint(b as Object, st as Object) as Integer
         shift = shift + 7
         if c < 128 then exit while
     end while
+    return result
+end function
+
+' The account's danmaku block list (the same rules as the Bilibili app's 屏蔽设置):
+' type 0 = keyword, 1 = regex, 2 = sender (hash, matching DanmakuElem.midHash). Needs login.
+function fetchDmFilters() as Object
+    result = { kind: "dmFilters", keywords: [], patterns: [], users: [] }
+    json = getJson("https://api.bilibili.com/x/dm/filter/user")
+    if json = invalid or json.code <> 0 or json.data = invalid or json.data.rule = invalid
+        print "[biliku] danmaku block list unavailable"
+        return result
+    end if
+    for each rule in json.data.rule
+        text = rule.filter
+        if text <> invalid and text <> ""
+            if rule.type = 0
+                result.keywords.Push(LCase(text))
+            else if rule.type = 1
+                ' Stored as /pattern/ by some clients; keep just the pattern.
+                if Len(text) > 2 and Left(text, 1) = "/" and Right(text, 1) = "/" then text = Mid(text, 2, Len(text) - 2)
+                result.patterns.Push(text)
+            else if rule.type = 2
+                result.users.Push(LCase(text))
+            end if
+        end if
+    end for
+    print "[biliku] danmaku block list: "; result.keywords.Count(); " words, "; result.patterns.Count(); " patterns, "; result.users.Count(); " users"
     return result
 end function
 
@@ -439,6 +473,24 @@ function resolvePlay(req as Object) as Object
     result.page = page
     result.pageCount = cids.Count()
     result.part = part
+
+    ' Part names (选集) and chapters (章节) for the player bar.
+    result.parts = []
+    if pages.data <> invalid
+        for each pg in pages.data
+            name = ""
+            if pg.part <> invalid then name = pg.part
+            result.parts.Push(name)
+        end for
+    end if
+    result.chapters = []
+    info = getJson("https://api.bilibili.com/x/player/v2?" + id + "&cid=" + cid)
+    if info <> invalid and info.data <> invalid and info.data.view_points <> invalid
+        for each vp in info.data.view_points
+            ' "to" is a BrightScript keyword, so read it by name.
+            result.chapters.Push({ start: vp["from"], finish: vp["to"], title: vp.content })
+        end for
+    end if
 
     ' Resume where this video was left off. Casts follow the phone's position instead.
     if wantCid = ""

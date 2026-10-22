@@ -12,8 +12,10 @@ Roku has no Bilibili app. 云屏 is a Roku app you install yourself through Roku
 
 - **Browse on the TV:** 推荐 (your personal recommendations once logged in), 热门, 排行榜, 入站必刷.
 - **QR-code login:** press **\*** on the home screen and scan with the Bilibili app. The login is stored only on your TV.
-- **Up to 1080P+** with a logged-in account (1080P+ needs 大会员). The default **Auto** mode adapts to your connection. Press **↓** during playback to pick a quality.
-- **Danmaku:** every comment for the video, drawn over the picture (display only). Toggle it in the **↓** menu.
+- **Up to 1080P+** with a logged-in account (1080P+ needs 大会员). The default **Auto** mode adapts to your connection.
+- **Player bar:** press **↓** during playback for play/pause, a progress bar with chapter marks, **章节** (chapters), **选集** (parts), **画质** (quality), a **弹幕** on/off switch and **弹幕设置**. Videos resume where you closed them.
+- **Danmaku:** every comment for the video, drawn over the picture (display only). **弹幕设置** lets you show or hide scrolling, top/bottom and coloured danmaku, keep them clear of subtitles (防挡字幕), and set the display area, opacity, size and speed. Settings are remembered.
+- **Your block list:** when you're logged in, the danmaku keywords, patterns and users you've blocked on your Bilibili account are hidden on the TV too.
 - **Cast from the Bilibili app:** tap **投屏** and choose **云屏**. The TV fetches its own HD stream, so you aren't stuck with the 720p that DLNA casting normally gets. Your phone's volume buttons control the TV volume.
 - **Share from your phone:** an iPhone Share-sheet shortcut sends any Bilibili link to the TV.
 - Multi-part videos play straight through, and Chinese text renders correctly (Noto Sans SC is bundled).
@@ -107,8 +109,10 @@ MIT, see [LICENSE](LICENSE). The bundled font is a subset of Noto Sans SC under 
 **功能**
 - 在电视上浏览推荐（登录后为个人推荐）、热门、排行榜、入站必刷。
 - 在首页按遥控器 **\*** 键扫码登录，登录信息只保存在电视上。
-- 登录后最高 1080P+（需大会员），默认「自动」画质。播放时按 **↓** 切换画质或开关弹幕。
-- 完整弹幕显示（只能看，不能发）。
+- 登录后最高 1080P+（需大会员），默认「自动」画质。
+- 播放时按 **↓** 打开播放栏：播放/暂停、进度条（含章节标记）、章节、选集、画质、弹幕开关、弹幕设置。关闭视频时自动记住播放位置。
+- 完整弹幕显示（只能看，不能发）。弹幕设置：滚动/固定/彩色弹幕开关、防挡字幕、显示区域、不透明度、字号、速度，设置会被记住。
+- 登录后自动同步账号的弹幕屏蔽词、正则和屏蔽用户。
 - 在 B 站 App 点「投屏」，选择「云屏」，电视会自己获取高清画面，不受 DLNA 投屏 720P 的限制。
 - iPhone 分享菜单捷径「投到电视」。
 

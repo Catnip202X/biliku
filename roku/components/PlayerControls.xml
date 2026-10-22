@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  In-player control bar (press ↓ during playback): progress with chapter marks, play/pause,
+  章节 chapters, 选集 parts, 画质 quality, 弹幕 on/off and 弹幕设置.
+  The scene feeds it state; choices come back through `action`.
+-->
+<component name="PlayerControls" extends="Group">
+  <interface>
+    <field id="show" type="boolean" alwaysNotify="true" onChange="onShow" />
+    <field id="paused" type="boolean" value="false" onChange="onPaused" />
+    <field id="position" type="float" onChange="onProgress" />
+    <field id="duration" type="float" onChange="onProgress" />
+    <!-- [{ start, finish, title }] -->
+    <field id="chapters" type="array" />
+    <!-- [{ label, codec }] best first -->
+    <field id="qualities" type="array" />
+    <field id="qualityIndex" type="integer" value="0" />
+    <!-- part names, one per part -->
+    <field id="parts" type="array" />
+    <field id="partIndex" type="integer" value="0" />
+    <field id="danmakuOn" type="boolean" value="true" />
+    <field id="dmSettings" type="assocarray" />
+    <!-- { type: "togglePlay" | "quality" | "chapter" | "part" | "danmaku" | "dmSettings" | "close", ... } -->
+    <field id="action" type="assocarray" alwaysNotify="true" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/PlayerControls.brs" />
+  <children>
+    <Rectangle id="shade" translation="[0,800]" width="1920" height="280" color="0x000000D0" />
+    <Rectangle id="track" translation="[96,846]" width="1728" height="8" color="0xFFFFFF40" />
+    <Rectangle id="fill" translation="[96,846]" width="0" height="8" color="0x00AEECFF" />
+    <Group id="marks" translation="[96,846]" />
+    <Label id="chapterNow" translation="[96,868]" width="1728" font="font:SmallSystemFont" color="0xC8D0D8FF" />
+    <Group id="buttons" translation="[0,930]" />
+
+    <Group id="popup" visible="false">
+      <Rectangle id="popupBg" width="560" color="0x14181EF0" />
+      <Label id="popupTitle" translation="[32,24]" font="font:MediumBoldSystemFont" color="0xF2F5F8FF" />
+      <LabelList id="popupList" translation="[24,84]" itemSize="[512,64]" numRows="9" color="0xC8D0D8FF" focusedColor="0x101418FF" focusBitmapBlendColor="0x00AEECFF" />
+    </Group>
+
+    <Group id="dmPanel" visible="false" translation="[1060,180]">
+      <Rectangle id="dmBg" width="800" color="0x14181EF0" />
+      <Label id="dmTitle" text="弹幕设置  ·  Danmaku settings" translation="[32,24]" font="font:MediumBoldSystemFont" color="0xF2F5F8FF" />
+      <Group id="dmRows" translation="[16,84]" />
+      <Label id="dmHint" translation="[32,0]" width="736" font="font:SmallestSystemFont" color="0x8A97A6FF" />
+    </Group>
+
+    <Timer id="hideTimer" repeat="false" duration="8" />
+  </children>
+</component>

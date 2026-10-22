@@ -17,8 +17,9 @@ sub init()
     m.videoTitleLabel = m.top.findNode("videoTitleLabel")
     m.videoTitleTimer = m.top.findNode("videoTitleTimer")
     m.danmaku = m.top.findNode("danmaku")
-    m.qualityMenu = m.top.findNode("qualityMenu")
-    m.qualityList = m.top.findNode("qualityList")
+    m.controls = m.top.findNode("controls")
+    m.chapters = []
+    m.parts = []
     m.qualities = invalid
     m.qualityIndex = 0
     m.manifestSerial = 0
@@ -34,9 +35,6 @@ sub init()
         m.loginTitle.font = makeFont(m.global.cjkFont, 48)
         m.loginStatus.font = makeFont(m.global.cjkFont, 32)
         m.videoTitleLabel.font = makeFont(m.global.cjkFont, 44)
-        m.top.findNode("qualityTitle").font = makeFont(m.global.cjkFont, 44)
-        m.qualityList.font = makeFont(m.global.cjkFont, 32)
-        m.qualityList.focusedFont = makeFont(m.global.cjkFont, 32)
     end if
 
     m.hint.text = "在手机上分享视频即可投送  ·  Share from your phone to " + deviceIp()
@@ -59,7 +57,11 @@ sub init()
     m.toastTimer.observeField("fire", "hideToast")
     m.pollTimer.observeField("fire", "onPollTimer")
     m.videoTitleTimer.observeField("fire", "hideVideoTitle")
-    m.qualityList.observeField("itemSelected", "onQualityChosen")
+    m.controls.observeField("action", "onControlAction")
+    ' Saved danmaku settings (loaded in main.brs) and the account block list.
+    m.dmSettings = m.global.dmSettings
+    m.danmaku.settings = m.dmSettings
+    m.danmaku.enabled = (m.dmSettings.enabled = true)
     ' Position updates drive the danmaku timing.
     m.video.notificationInterval = 0.5
     m.video.observeField("position", "onVideoPosition")
@@ -167,6 +169,7 @@ end sub
 sub onAccount(event as Object)
     res = event.getData()
     m.loggedIn = res.loggedIn
+    if m.loggedIn then startTask("dmFilters", { kind: "dmFilters" }, "onDmFilters")
     m.userName = res.name
     if m.loggedIn
         m.account.text = "已登录  ·  " + m.userName
@@ -273,6 +276,10 @@ sub onQrPoll(event as Object)
     end if
 end sub
 
+sub onDmFilters(event as Object)
+    m.danmaku.filters = event.getData()
+end sub
+
 sub onLogout(event as Object)
     closeLogin()
     showToast("已退出登录  ·  Signed out", 4)
@@ -375,6 +382,10 @@ sub onPlayResolved(event as Object)
         if res.quality <> invalid then showToast(res.quality, 3) else hideToast()
     end if
     if resumeAt > 0 then showToast("从 " + clockText(resumeAt) + " 继续  ·  Resuming at " + clockText(resumeAt), 4)
+    m.chapters = []
+    if res.chapters <> invalid then m.chapters = res.chapters
+    m.parts = []
+    if res.parts <> invalid then m.parts = res.parts
     m.current = { bvid: res.bvid, page: res.page, pageCount: res.pageCount, title: title }
     if res.cid <> invalid then startTask("danmaku", { kind: "danmaku", cid: res.cid, duration: res.duration, token: m.playToken }, "onDanmaku")
 end sub
@@ -385,6 +396,8 @@ sub playDirect(url as String, title as String)
     m.current = invalid
     if title = "" then title = "投屏  ·  Cast"
     m.qualities = invalid
+    m.chapters = []
+    m.parts = []
     m.danmaku.items = []
     startVideo(url, title, 0)
     showToast("投屏  ·  " + title, 4)
@@ -409,7 +422,8 @@ sub startVideo(url as String, title as String, startAt as Float)
     m.video.control = "stop"
     m.video.content = content
     m.video.visible = true
-    m.video.setFocus(true)
+    ' Don't pull focus away from the player bar if a reload happens while it's open.
+    if not m.controls.visible then m.video.setFocus(true)
     m.video.control = "play"
 end sub
 
@@ -423,43 +437,67 @@ sub playQuality(index as Integer, startAt as Float)
     showToast(q.label + "  ·  " + q.codec, 3)
 end sub
 
-sub openQualityMenu()
-    root = CreateObject("roSGNode", "ContentNode")
+sub showControls()
+    c = m.controls
+    c.chapters = m.chapters
+    c.parts = m.parts
+    partIndex = 0
+    if m.current <> invalid and m.current.page <> invalid then partIndex = m.current.page - 1
+    c.partIndex = partIndex
     if m.qualities <> invalid
-        for i = 0 to m.qualities.Count() - 1
-            q = m.qualities[i]
-            mark = "    "
-            if i = m.qualityIndex then mark = "●  "
-            root.createChild("ContentNode").title = mark + q.label + "  ·  " + q.codec
+        labels = []
+        for each q in m.qualities
+            labels.Push({ label: q.label, codec: q.codec })
         end for
+        c.qualities = labels
+        c.qualityIndex = m.qualityIndex
     else
-        root.createChild("ContentNode").title = "    当前视频只有一种画质  ·  Single quality"
+        c.qualities = []
     end if
-    toggle = "关闭弹幕  ·  Danmaku off"
-    if not m.danmaku.enabled then toggle = "开启弹幕  ·  Danmaku on"
-    root.createChild("ContentNode").title = "    " + toggle
-    m.qualityList.content = root
-    m.qualityList.jumpToItem = m.qualityIndex
-    m.qualityMenu.visible = true
-    m.qualityList.setFocus(true)
+    c.danmakuOn = m.danmaku.enabled
+    c.dmSettings = m.dmSettings
+    c.paused = (m.video.state = "paused")
+    c.duration = m.video.duration
+    c.position = m.video.position
+    c.visible = true
+    c.show = true
 end sub
 
-sub closeQualityMenu()
-    m.qualityMenu.visible = false
+sub hideControls()
+    m.controls.visible = false
     if m.video.visible then m.video.setFocus(true)
 end sub
 
-sub onQualityChosen()
-    index = m.qualityList.itemSelected
-    count = 0
-    if m.qualities <> invalid then count = m.qualities.Count()
-    closeQualityMenu()
-    if index = m.qualityList.content.getChildCount() - 1
-        m.danmaku.enabled = not m.danmaku.enabled
-        if m.danmaku.enabled then showToast("弹幕已开启  ·  Danmaku on", 2) else showToast("弹幕已关闭  ·  Danmaku off", 2)
-    else if index < count and index <> m.qualityIndex
-        playQuality(index, m.video.position)
+sub onControlAction()
+    a = m.controls.action
+    print "[biliku] player bar: "; a.type
+    if a.type = "close"
+        hideControls()
+    else if a.type = "togglePlay"
+        if m.video.state = "paused" then m.video.control = "resume" else m.video.control = "pause"
+    else if a.type = "quality" and m.qualities <> invalid and a.index <> m.qualityIndex
+        hideControls()
+        playQuality(a.index, m.lastPosition)
+    else if a.type = "chapter" and a.index < m.chapters.Count()
+        m.video.seek = m.chapters[a.index].start
+    else if a.type = "part" and m.current <> invalid and a.index + 1 <> m.current.page
+        hideControls()
+        playTarget(m.current.bvid, (a.index + 1).ToStr(), m.current.title, "正在加载…  Loading…")
+    else if a.type = "danmaku"
+        m.danmaku.enabled = a.on
+        m.dmSettings.enabled = a.on
+        saveDmSettings()
+    else if a.type = "dmSettings"
+        enabled = m.dmSettings.enabled
+        m.dmSettings = a.settings
+        m.dmSettings.enabled = enabled
+        m.danmaku.settings = m.dmSettings
+        saveDmSettings()
     end if
+end sub
+
+sub saveDmSettings()
+    startTask("saveDm", { kind: "saveDmSettings", settings: m.dmSettings }, "onPositionSaved")
 end sub
 
 sub onDanmaku(event as Object)
@@ -470,6 +508,10 @@ end sub
 
 sub onVideoPosition()
     m.danmaku.position = m.video.position
+    if m.controls.visible
+        m.controls.position = m.video.position
+        m.controls.duration = m.video.duration
+    end if
     if m.video.position > 0 then m.lastPosition = m.video.position
 end sub
 
@@ -522,6 +564,7 @@ sub onVideoState()
     state = m.video.state
     print "[biliku] player "; state; " at "; Int(m.video.position); "s of "; Int(m.video.duration); "s"
     m.danmaku.playing = (state = "playing")
+    if m.controls.visible then m.controls.paused = (state = "paused")
     if state = "playing" and m.pendingSeek <> invalid and m.pendingSeek > 0
         m.video.seek = m.pendingSeek
         m.pendingSeek = 0
@@ -562,7 +605,7 @@ sub closeVideo()
     m.video.visible = false
     m.videoTitleTimer.control = "stop"
     m.videoTitle.visible = false
-    m.qualityMenu.visible = false
+    m.controls.visible = false
     m.qualities = invalid
     m.danmaku.playing = false
     m.danmaku.items = []
@@ -582,17 +625,9 @@ function onKeyEvent(key as String, press as Boolean) as Boolean
         end if
         return true
     end if
-    if m.qualityMenu.visible
-        if key = "back" or key = "left"
-            closeQualityMenu()
-            return true
-        end if
-        return false
-    end if
-    ' ↓ / ↑ open the player menu. (* is the TV's own settings menu during playback.)
-    if (key = "down" or key = "up") and m.video.visible
-        print "[biliku] player menu opened"
-        openQualityMenu()
+    ' ↓ / ↑ open the player bar. (* is the TV's own settings menu during playback.)
+    if (key = "down" or key = "up") and m.video.visible and not m.controls.visible
+        showControls()
         return true
     end if
     if key = "back" and m.video.visible
