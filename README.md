@@ -13,7 +13,7 @@ Roku has no Bilibili app. 云屏 is a Roku app you install yourself through Roku
 - **Browse on the TV:** 推荐 (your personal recommendations once logged in), 热门, 排行榜, 入站必刷.
 - **QR-code login:** press **\*** on the home screen and scan with the Bilibili app. The login is stored only on your TV.
 - **Up to 1080P+** with a logged-in account (1080P+ needs 大会员). The default **Auto** mode adapts to your connection.
-- **Player bar:** press **↓** during playback for play/pause, a progress bar with chapter marks, **章节** (chapters), **选集** (parts), **画质** (quality), a **弹幕** on/off switch and **弹幕设置**. Videos resume where you closed them.
+- **Player bar:** press **↓** during playback for play/pause, a progress bar with chapter marks, **章节** (chapters), **选集** (parts), **画质** (quality), **线路** (which CDN server to stream from), a **弹幕** on/off switch and **弹幕设置**. Videos resume where you closed them.
 - **Danmaku:** every comment for the video, drawn over the picture (display only). **弹幕设置** lets you show or hide scrolling, top/bottom and coloured danmaku, keep them clear of subtitles (防挡字幕), and set the display area, opacity, size and speed. Settings are remembered.
 - **Your block list:** when you're logged in, the danmaku keywords, patterns and users you've blocked on your Bilibili account are hidden on the TV too.
 - **Cast from the Bilibili app:** tap **投屏** and choose **云屏**. The TV fetches its own HD stream, so you aren't stuck with the 720p that DLNA casting normally gets. Your phone's volume buttons control the TV volume.
@@ -84,7 +84,7 @@ biliku shortcut            (macOS) build the iPhone share shortcut
 
 - **"Couldn't reach the Roku" or nothing happens when sending:** on the Roku, set **Settings → System → Advanced system settings → Control by mobile apps → Network access** to **Default** or **Permissive**.
 - **云屏 doesn't appear in 投屏:** make sure the receiver is running and your phone and computer are on the same network. On Windows, allow it through the firewall. On macOS, allow "Local Network" access if asked.
-- **Buffering:** Wi-Fi on budget TVs is often slow. Use Ethernet if your TV has a port, or leave quality on Auto.
+- **Buffering or slow seeking:** Wi-Fi on budget TVs is often slow. Use Ethernet if your TV has a port, leave quality on Auto, and try a different **线路** in the player bar (the default, Bilibili's own pick, was fastest in testing).
 
 ## Privacy
 
@@ -110,7 +110,7 @@ MIT, see [LICENSE](LICENSE). The bundled font is a subset of Noto Sans SC under 
 - 在电视上浏览推荐（登录后为个人推荐）、热门、排行榜、入站必刷。
 - 在首页按遥控器 **\*** 键扫码登录，登录信息只保存在电视上。
 - 登录后最高 1080P+（需大会员），默认「自动」画质。
-- 播放时按 **↓** 打开播放栏：播放/暂停、进度条（含章节标记）、章节、选集、画质、弹幕开关、弹幕设置。关闭视频时自动记住播放位置。
+- 播放时按 **↓** 打开播放栏：播放/暂停、进度条（含章节标记）、章节、选集、画质、线路、弹幕开关、弹幕设置。关闭视频时自动记住播放位置。
 - 完整弹幕显示（只能看，不能发）。弹幕设置：滚动/固定/彩色弹幕开关、防挡字幕、显示区域、不透明度、字号、速度，设置会被记住。
 - 登录后自动同步账号的弹幕屏蔽词、正则和屏蔽用户。
 - 在 B 站 App 点「投屏」，选择「云屏」，电视会自己获取高清画面，不受 DLNA 投屏 720P 的限制。

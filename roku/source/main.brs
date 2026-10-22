@@ -38,7 +38,11 @@ sub Main(args as Dynamic)
             end for
         end if
     end if
-    screen.GetGlobalNode().addFields({ cjkFont: cjkFont, fullFont: fullFont, dmSettings: dm })
+    prefs = CreateObject("roRegistrySection", "prefs")
+    ' Default: the server Bilibili picks for this location (fastest overall when tested on a Roku TV).
+    cdn = "auto"
+    if prefs.Exists("cdn") then cdn = prefs.Read("cdn")
+    screen.GetGlobalNode().addFields({ cjkFont: cjkFont, fullFont: fullFont, dmSettings: dm, cdn: cdn })
 
     scene = screen.CreateScene("MainScene")
     screen.Show()

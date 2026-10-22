@@ -145,7 +145,7 @@ sub buildRows()
             row.title = f.title
             for each v in items
                 node = row.createChild("ContentNode")
-                node.addFields({ bvid: v.bvid, author: v.author, durationText: v.duration })
+                node.addFields({ bvid: v.bvid, cid: v.cid, author: v.author, durationText: v.duration })
                 node.title = v.title
                 node.HDPosterUrl = v.pic
             end for
@@ -164,7 +164,7 @@ end sub
 sub onItemSelected()
     sel = m.rows.rowItemSelected
     item = m.rows.content.getChild(sel[0]).getChild(sel[1])
-    playTarget(item.bvid, "", item.title, "正在加载…  Loading…")
+    playTarget(item.bvid, "", item.title, "正在加载…  Loading…", item.cid)
 end sub
 
 ' ---------- account ----------
@@ -348,17 +348,18 @@ end sub
 
 ' ---------- playback ----------
 
-sub playTarget(target as String, p as String, title as String, message as String)
+sub playTarget(target as String, p as String, title as String, message as String, cid = "" as String)
     m.playToken = m.playToken + 1
     m.pendingTitle = title
     m.castFallback = invalid
     m.castLoading = false
     m.castStartAt = invalid
+    m.switchStartAt = invalid
     showToast(message, 0)
     m.playTask = invalid
     task = CreateObject("roSGNode", "ApiTask")
     task.observeField("response", "onPlayResolved")
-    task.request = { kind: "play", target: target, p: p, title: title, token: m.playToken }
+    task.request = { kind: "play", target: target, p: p, title: title, cid: cid, cdn: m.global.cdn, token: m.playToken }
     task.control = "run"
     m.playTask = task
 end sub
@@ -396,6 +397,8 @@ sub onPlayResolved(event as Object)
     resumeAt = 0
     if res.resumeAt <> invalid then resumeAt = res.resumeAt
     if m.castStartAt <> invalid and m.castStartAt > 0 then resumeAt = m.castStartAt
+    if m.switchStartAt <> invalid and m.switchStartAt > 0 then resumeAt = m.switchStartAt
+    m.switchStartAt = invalid
     m.castLoading = false
     m.castStartAt = invalid
     if res.qualities <> invalid
@@ -412,6 +415,7 @@ sub onPlayResolved(event as Object)
     m.parts = []
     if res.parts <> invalid then m.parts = res.parts
     m.current = { bvid: res.bvid, page: res.page, pageCount: res.pageCount, title: title }
+    if res.cid <> invalid then startTask("videoMeta", { kind: "videoMeta", idParam: videoParam(res.bvid), cid: res.cid, token: m.playToken }, "onVideoMeta")
     if res.cid <> invalid then startTask("danmaku", { kind: "danmaku", cid: res.cid, duration: res.duration, token: m.playToken }, "onDanmaku")
 end sub
 
@@ -488,6 +492,10 @@ sub showControls()
     else
         c.qualities = []
     end if
+    cdnIndex = 0
+    if m.global.cdn = "hw" then cdnIndex = 1
+    if m.global.cdn = "akam" then cdnIndex = 2
+    c.cdnIndex = cdnIndex
     c.danmakuOn = m.danmaku.enabled
     c.dmSettings = m.dmSettings
     c.paused = (m.video.state = "paused")
@@ -517,6 +525,17 @@ sub onControlAction()
     else if a.type = "part" and m.current <> invalid and a.index + 1 <> m.current.page
         hideControls()
         playTarget(m.current.bvid, (a.index + 1).ToStr(), m.current.title, "正在加载…  Loading…")
+    else if a.type = "cdn" and m.current <> invalid
+        choices = ["auto", "hw", "akam"]
+        if a.index < choices.Count() and choices[a.index] <> m.global.cdn
+            m.global.cdn = choices[a.index]
+            startTask("savePref", { kind: "savePref", key: "cdn", value: m.global.cdn }, "onPositionSaved")
+            ' Reload the same video and part on the new server, continuing from here.
+            resumeAt = m.lastPosition
+            hideControls()
+            playTarget(m.current.bvid, m.current.page.ToStr(), m.current.title, "切换线路…  Switching server…")
+            m.switchStartAt = resumeAt
+        end if
     else if a.type = "danmaku"
         m.danmaku.enabled = a.on
         m.dmSettings.enabled = a.on
@@ -532,6 +551,21 @@ end sub
 
 sub saveDmSettings()
     startTask("saveDm", { kind: "saveDmSettings", settings: m.dmSettings }, "onPositionSaved")
+end sub
+
+' "BV..." -> "bvid=BV...", "av123" -> "aid=123"
+function videoParam(ref as String) as String
+    if Left(ref, 2) = "av" then return "aid=" + Mid(ref, 3)
+    return "bvid=" + ref
+end function
+
+sub onVideoMeta(event as Object)
+    res = event.getData()
+    if res = invalid or res.token <> m.playToken then return
+    m.chapters = res.chapters
+    m.parts = res.parts
+    if m.current <> invalid and res.parts.Count() > 0 then m.current.pageCount = res.parts.Count()
+    if m.controls.visible then showControls()
 end sub
 
 sub onDanmaku(event as Object)

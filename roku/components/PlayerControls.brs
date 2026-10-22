@@ -39,6 +39,7 @@ sub init()
     m.focus = 0
     m.listMode = ""
     m.dmRow = 0
+    m.cdnNames = ["B站分配 Default", "华为 Huawei", "Akamai"]
     m.rowDefs = [
         { key: "scroll", label: "滚动弹幕  Scrolling", kind: "toggle" }
         { key: "fixed", label: "顶部/底部  Top & bottom", kind: "toggle" }
@@ -93,6 +94,7 @@ sub buildButtons()
     rightDefs = []
     qualities = m.top.qualities
     if qualities <> invalid and qualities.Count() > 0 then rightDefs.Push({ id: "quality", text: qualityText() })
+    if qualities <> invalid and qualities.Count() > 0 then rightDefs.Push({ id: "cdn", text: "线路 " + m.cdnNames[m.top.cdnIndex] })
     dmText = "弹幕 关"
     if m.top.danmakuOn then dmText = "弹幕 开"
     rightDefs.Push({ id: "danmaku", text: dmText })
@@ -286,6 +288,8 @@ sub onListChosen()
         m.top.action = { type: "part", index: index }
     else if mode = "quality"
         m.top.action = { type: "quality", index: index }
+    else if mode = "cdn"
+        m.top.action = { type: "cdn", index: index }
     end if
 end sub
 
@@ -312,6 +316,8 @@ sub activate()
             items.Push(q.label)
         end for
         openList("quality", "画质  ·  Quality", items, m.top.qualityIndex)
+    else if id = "cdn"
+        openList("cdn", "线路  ·  Server", m.cdnNames, m.top.cdnIndex)
     else if id = "danmaku"
         m.top.danmakuOn = not m.top.danmakuOn
         if m.top.danmakuOn then setButtonText("danmaku", "弹幕 开") else setButtonText("danmaku", "弹幕 关")

@@ -1,8 +1,7 @@
-**New in 0.2.1:**
-- **Full Chinese font:** on first launch the app downloads the complete Noto Sans SC (about 27,800 Chinese characters, including traditional characters and Japanese kanji) and uses it from the next launch on, so far fewer titles and danmaku show boxes. Korean and emoji still can't be shown.
-- **Casts start where you were** on your phone, using the phone's position or your watch history.
-- **No more flash of 0:00 when resuming:** the screen stays black ("定位中…") until playback reaches your position.
-- **Fixed:** picking chapters quickly could land on an earlier pick, and the danmaku settings could stop responding to ↑/↓ after a background stream reload.
+**New in 0.2.2:**
+- **Faster video starts:** signing keys are cached for the day, chapters and part names load after playback starts, and videos picked from the home rows skip a lookup. That's about 1 s less waiting before playback.
+- **线路 (server) button** in the player bar: Bilibili's own pick (default, fastest in testing), Huawei Cloud, or Akamai. Switching continues from the same spot, and the choice is remembered.
+- **Auto quality** lists the top 3 qualities, so the player fetches fewer stream indexes before starting.
 
 Update the Roku app with the companion (option **1**).
 

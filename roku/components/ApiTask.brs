@@ -23,10 +23,17 @@ sub run()
         m.top.response = qrGenerate()
     else if req.kind = "qrPoll"
         m.top.response = qrPoll(req.key)
+    else if req.kind = "videoMeta"
+        m.top.response = fetchVideoMeta(req.idParam, req.cid, req.token)
     else if req.kind = "fetchFont"
         m.top.response = fetchFullFont()
     else if req.kind = "dmFilters"
         m.top.response = fetchDmFilters()
+    else if req.kind = "savePref"
+        sec = CreateObject("roRegistrySection", "prefs")
+        sec.Write(req.key, req.value)
+        sec.Flush()
+        m.top.response = { kind: "savePref" }
     else if req.kind = "saveDmSettings"
         sec = CreateObject("roRegistrySection", "danmaku")
         sec.Write("settings", FormatJson(req.settings))
@@ -105,9 +112,19 @@ end function
 ' ---------- WBI request signing (needed by the recommendation feed) ----------
 
 function wbiSign(params as Object) as String
-    nav = getJson("https://api.bilibili.com/x/web-interface/nav")
-    if nav = invalid or nav.data = invalid or nav.data.wbi_img = invalid then return ""
-    raw = keyFromUrl(nav.data.wbi_img.img_url) + keyFromUrl(nav.data.wbi_img.sub_url)
+    ' The signing keys change about once a day, so cache them instead of asking before every request.
+    cache = CreateObject("roRegistrySection", "wbi")
+    today = (CreateObject("roDateTime").AsSeconds() \ 86400).ToStr()
+    raw = ""
+    if cache.Exists("day") and cache.Read("day") = today and cache.Exists("raw") then raw = cache.Read("raw")
+    if raw = ""
+        nav = getJson("https://api.bilibili.com/x/web-interface/nav")
+        if nav = invalid or nav.data = invalid or nav.data.wbi_img = invalid then return ""
+        raw = keyFromUrl(nav.data.wbi_img.img_url) + keyFromUrl(nav.data.wbi_img.sub_url)
+        cache.Write("raw", raw)
+        cache.Write("day", today)
+        cache.Flush()
+    end if
     order = [46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11, 36, 20, 34, 44, 52]
     mixin = ""
     for each i in order
@@ -170,7 +187,12 @@ function fetchFeed(key as String) as Object
         if v.bvid <> invalid and v.bvid <> "" and (v["goto"] = invalid or v["goto"] = "av")
             author = ""
             if v.owner <> invalid and v.owner.name <> invalid then author = v.owner.name
-            items.Push({ bvid: v.bvid, title: v.title, pic: thumbUrl(v.pic), author: author, duration: formatDuration(v.duration) })
+            cidText = ""
+            if v.cid <> invalid
+                t = type(v.cid)
+                if t = "Integer" or t = "roInteger" or t = "LongInteger" or t = "roLongInteger" then cidText = v.cid.ToStr()
+            end if
+            items.Push({ bvid: v.bvid, cid: cidText, title: v.title, pic: thumbUrl(v.pic), author: author, duration: formatDuration(v.duration) })
         end if
     end for
     print "[biliku] feed "; key; ": "; items.Count(); " videos"
@@ -431,6 +453,8 @@ end function
 
 function resolvePlay(req as Object) as Object
     result = { kind: "play", token: req.token, ok: false }
+    m.cdn = "auto"
+    if req.cdn <> invalid and req.cdn <> "" then m.cdn = req.cdn
     target = req.target
     print "[biliku] resolve: "; target
     if Instr(1, target, "%") > 0 then target = CreateObject("roUrlTransfer").Unescape(target)
@@ -481,50 +505,42 @@ function resolvePlay(req as Object) as Object
         if pm.Count() > 1 then page = Int(Val(pm[1]))
     end if
 
-    ' cids can exceed 32 bits, so read them from the raw text instead of ParseJson numbers.
-    body = httpGet("https://api.bilibili.com/x/player/pagelist?" + id)
-    pages = invalid
-    if body <> "" then pages = ParseJson(body)
-    cids = CreateObject("roRegex", """cid"":(\d+)", "").MatchAll(body)
-    if pages = invalid or pages.code <> 0 or cids.Count() = 0
-        result.error = "视频不存在或不可用  ·  Video unavailable"
-        return result
-    end if
-    if wantCid <> ""
-        for i = 0 to cids.Count() - 1
-            if cids[i][1] = wantCid then page = i + 1
-        end for
-    end if
-    if page < 1 or page > cids.Count() then page = 1
-    cid = cids[page - 1][1]
-
+    ' Videos picked from a home row already carry their first part's cid, so skip the lookup.
+    knownCid = ""
+    if req.cid <> invalid and req.cid <> "" and wantCid = "" and (req.p = invalid or req.p = "") then knownCid = req.cid
     part = ""
-    if pages.data <> invalid and pages.data.Count() >= page and pages.data[page - 1].part <> invalid
-        part = pages.data[page - 1].part
+    if knownCid <> ""
+        cid = knownCid
+        page = 1
+        pageCount = 1
+    else
+        ' cids can exceed 32 bits, so read them from the raw text instead of ParseJson numbers.
+        body = httpGet("https://api.bilibili.com/x/player/pagelist?" + id)
+        pages = invalid
+        if body <> "" then pages = ParseJson(body)
+        cids = CreateObject("roRegex", """cid"":(\d+)", "").MatchAll(body)
+        if pages = invalid or pages.code <> 0 or cids.Count() = 0
+            result.error = "视频不存在或不可用  ·  Video unavailable"
+            return result
+        end if
+        if wantCid <> ""
+            for i = 0 to cids.Count() - 1
+                if cids[i][1] = wantCid then page = i + 1
+            end for
+        end if
+        if page < 1 or page > cids.Count() then page = 1
+        cid = cids[page - 1][1]
+        pageCount = cids.Count()
+        if pages.data <> invalid and pages.data.Count() >= page and pages.data[page - 1].part <> invalid
+            part = pages.data[page - 1].part
+        end if
     end if
 
     result.bvid = videoRef(id)
     result.page = page
-    result.pageCount = cids.Count()
+    result.pageCount = pageCount
     result.part = part
-
-    ' Part names (选集) and chapters (章节) for the player bar.
-    result.parts = []
-    if pages.data <> invalid
-        for each pg in pages.data
-            name = ""
-            if pg.part <> invalid then name = pg.part
-            result.parts.Push(name)
-        end for
-    end if
-    result.chapters = []
-    info = getJson("https://api.bilibili.com/x/player/v2?" + id + "&cid=" + cid)
-    if info <> invalid and info.data <> invalid and info.data.view_points <> invalid
-        for each vp in info.data.view_points
-            ' "to" is a BrightScript keyword, so read it by name.
-            result.chapters.Push({ start: vp["from"], finish: vp["to"], title: vp.content })
-        end for
-    end if
+    ' Chapters and part names are fetched after playback starts (ApiTask "videoMeta").
 
     ' Resume where this video was left off. Casts start where the phone was (from watch history;
     ' the phone's own seek, if it arrives in time, overrides this in the scene).
@@ -635,8 +651,8 @@ function resolveDash(id as String, cid as String) as Dynamic
     ' connection instead of stalling when Wi-Fi dips below a fixed quality's bitrate.
     if qualities.Count() > 1
         reps = ""
-        for each q in qualities
-            reps = reps + q.rep
+        for i = 0 to qualities.Count() - 1
+            if i < 3 then reps = reps + qualities[i].rep
         end for
         auto = "<?xml version=""1.0"" encoding=""UTF-8""?>" + Chr(10)
         auto = auto + "<MPD xmlns=""urn:mpeg:dash:schema:mpd:2011"" profiles=""urn:mpeg:dash:profile:isoff-on-demand:2011"" type=""static"" mediaPresentationDuration=""PT" + duration.ToStr() + "S"" minBufferTime=""PT4S"">" + Chr(10) + "<Period>" + Chr(10)
@@ -644,7 +660,7 @@ function resolveDash(id as String, cid as String) as Dynamic
         auto = auto + audioSet + "</Period>" + Chr(10) + "</MPD>" + Chr(10)
         qualities.Unshift({ id: 0, label: "自动 Auto · 最高 " + qualities[0].label, codec: "AVC", mpd: auto, rep: "" })
     end if
-    print "[biliku] dash "; id; " qualities: "; qualities.Count(); ", best "; qualities[0].label; " (avc 4k "; avc4k; ")"
+    print "[biliku] dash "; id; " qualities: "; qualities.Count(); ", best "; qualities[0].label
     return { qualities: qualities, duration: duration }
 end function
 
@@ -674,9 +690,7 @@ function avcCodecLabel(s as Object) as String
 end function
 
 function dashRep(repId as String, s as Object, extra as String) as String
-    url = s.base_url
-    if url = invalid then url = s.baseUrl
-    url = fastMirror(url)
+    url = pickStreamUrl(s)
     seg = s.segment_base
     if seg = invalid then seg = s.SegmentBase
     initRange = seg.initialization
@@ -686,11 +700,27 @@ function dashRep(repId as String, s as Object, extra as String) as String
     return "<Representation id=""" + repId + """ bandwidth=""" + s.bandwidth.ToStr() + """ codecs=""" + avcCodecLabel(s) + """ " + extra + ">" + Chr(10) + "<BaseURL>" + xmlEscape(url) + "</BaseURL>" + Chr(10) + "<SegmentBase indexRange=""" + indexRange + """><Initialization range=""" + initRange + """/></SegmentBase>" + Chr(10) + "</Representation>" + Chr(10)
 end function
 
-' Bilibili's signed stream links work on any of its own upos mirrors. Measured from this network,
-' mirrorhw (Huawei Cloud) averaged ~30 Mbit/s vs ~14 for mirrorcosov, so move links there.
-' Other CDNs (e.g. Akamai) use their own tokens and are left alone.
-function fastMirror(url as String) as String
-    return CreateObject("roRegex", "^https?://upos-[a-z]+-mirror[a-z0-9]+\.bilivideo\.com/", "").Replace(url, "https://upos-sz-mirrorhw.bilivideo.com/")
+' Which CDN server streams come from (the player bar's 线路 button):
+'   "hw"   upos-sz-mirrorhw (Huawei Cloud): highest sustained speed from the US, slower per request
+'   "auto" the server Bilibili picked for this location
+'   "akam" Bilibili's Akamai link when it offers one (fastest for uncached seeks in tests)
+function pickStreamUrl(s as Object) as String
+    url = s.base_url
+    if url = invalid then url = s.baseUrl
+    if m.cdn = "akam"
+        backups = s.backup_url
+        if backups = invalid then backups = s.backupUrl
+        if Instr(1, url, "akamaized") = 0 and backups <> invalid
+            for each b in backups
+                if Instr(1, b, "akamaized") > 0 then return b
+            end for
+        end if
+        return url
+    end if
+    if m.cdn = "hw"
+        return CreateObject("roRegex", "^https?://upos-[a-z]+-mirror[a-z0-9]+\.bilivideo\.com/", "").Replace(url, "https://upos-sz-mirrorhw.bilivideo.com/")
+    end if
+    return url
 end function
 
 function xmlEscape(s as String) as String
@@ -740,6 +770,27 @@ function bvidForCid(cid as String, title as String) as String
     end if
     print "[biliku] cast cid "; cid; " not found"
     return ""
+end function
+
+' Part names (选集) and chapters (章节) for the player bar, fetched after playback has started.
+function fetchVideoMeta(idParam as String, cid as String, token as Dynamic) as Object
+    result = { kind: "videoMeta", token: token, parts: [], chapters: [] }
+    pages = getJson("https://api.bilibili.com/x/player/pagelist?" + idParam)
+    if pages <> invalid and pages.data <> invalid
+        for each pg in pages.data
+            name = ""
+            if pg.part <> invalid then name = pg.part
+            result.parts.Push(name)
+        end for
+    end if
+    info = getJson("https://api.bilibili.com/x/player/v2?" + idParam + "&cid=" + cid)
+    if info <> invalid and info.data <> invalid and info.data.view_points <> invalid
+        for each vp in info.data.view_points
+            ' "to" is a BrightScript keyword, so read it by name.
+            result.chapters.Push({ start: vp["from"], finish: vp["to"], title: vp.content })
+        end for
+    end if
+    return result
 end function
 
 ' Returns the API query parameter for the first video id in s: "bvid=BV..." or "aid=123", or "".
