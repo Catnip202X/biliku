@@ -1,4 +1,4 @@
-**New:** videos resume where you left off. The TV saves your place every 30 s and when you close a video (casts follow the phone's position).
+**New:** videos resume exactly where you closed them (with Back, or Stop from the phone). Casts follow the phone's position.
 
 **Fix:** pause, stop, the ±10 s buttons and dragging the progress bar in the Bilibili app's cast (投屏) screen now work. The TV app was ignoring cast commands that didn't carry a video link.
 

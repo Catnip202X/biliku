@@ -363,7 +363,6 @@ sub onPlayResolved(event as Object)
     m.displayTitle = displayTitle
     m.retries = 0
     m.lastPosition = 0
-    m.lastSavedAt = invalid
     m.danmaku.items = []
     resumeAt = 0
     if res.resumeAt <> invalid then resumeAt = res.resumeAt
@@ -472,11 +471,6 @@ end sub
 sub onVideoPosition()
     m.danmaku.position = m.video.position
     if m.video.position > 0 then m.lastPosition = m.video.position
-    ' Save the resume point every 30 s of playback (covers leaving with the Home button).
-    if m.lastSavedAt = invalid or Abs(m.lastPosition - m.lastSavedAt) >= 30
-        m.lastSavedAt = m.lastPosition
-        savePosition(m.lastPosition)
-    end if
 end sub
 
 sub savePosition(posSec as Float)
@@ -561,6 +555,7 @@ sub onVideoState()
 end sub
 
 sub closeVideo()
+    ' Remember exactly where the video was closed (Back, or Stop from the phone).
     if m.video.visible and m.lastPosition > 0 then savePosition(m.lastPosition)
     m.playToken = m.playToken + 1
     m.video.control = "stop"

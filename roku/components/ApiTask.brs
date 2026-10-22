@@ -24,9 +24,10 @@ sub run()
     else if req.kind = "qrPoll"
         m.top.response = qrPoll(req.key)
     else if req.kind = "savePosition"
-        ' Per-video resume points; dropped near the start or end so finished videos start fresh.
+        ' Per-video resume point, saved when the video is closed. Cleared when it's finished (or closed
+        ' in its last few seconds) so a watched video starts fresh next time.
         sec = CreateObject("roRegistrySection", "positions")
-        if req.atSec < 10 or (req.duration > 0 and req.atSec > req.duration - 30)
+        if req.atSec < 1 or (req.duration > 0 and req.atSec > req.duration - 5)
             sec.Delete(req.key)
         else
             sec.Write(req.key, req.atSec.ToStr())
