@@ -1,12 +1,11 @@
-First public release of Biliku 云屏, an unofficial Bilibili app for Roku TVs.
+**Fix:** pause, stop and the ±10 s seek buttons in the Bilibili app's cast (投屏) screen now work. The TV app was ignoring cast commands that didn't carry a video link.
 
-**Download the companion for your computer** (it installs the Roku app and runs the cast receiver):
+Update both parts: run the new companion, choose **1. Install / update 云屏**, then **3** to restart the cast receiver with the new version.
+
+**Downloads:**
 - Windows: `biliku-windows.exe`
 - macOS: `biliku-macos-apple-silicon` (M1 and later) or `biliku-macos-intel`
 - Linux: `biliku-linux`
+- `biliku-roku.zip` is the Roku app on its own, for installing manually.
 
-`biliku-roku.zip` is the Roku app on its own, for installing manually through the Roku's developer web page.
-
-These builds aren't code-signed. See the README for how to get past the first-run warnings on macOS and Windows.
-
-**In this release:** browsing with personal recommendations, QR login, up to 1080P+ with an adaptive Auto quality, full danmaku overlay, casting from the Bilibili app with HD lookup, phone volume control, and an iPhone share shortcut. **Known limit:** 4K doesn't play on Roku yet (Bilibili's HEVC/AV1 DASH fails to demux).
+These builds aren't code-signed. See the README for getting past the first-run warnings.

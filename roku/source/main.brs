@@ -2,7 +2,8 @@
 ' Videos arrive two ways:
 '   - launch args, when a phone sends a video while the app is closed
 '   - roInputEvent, when a phone sends a video while the app is already open
-' Both carry contentId (a BV id, a bilibili URL, or a b23.tv short link) and optional p (part number).
+' Both carry contentId (a BV id, a bilibili URL, or a b23.tv short link) and optional p (part number),
+' or cmd (pause / resume / stop / seek) from the cast receiver.
 sub Main(args as Dynamic)
     screen = CreateObject("roSGScreen")
     port = CreateObject("roMessagePort")
@@ -32,7 +33,8 @@ sub Main(args as Dynamic)
             if msg.IsScreenClosed() then return
         else if msgType = "roInputEvent"
             info = msg.GetInfo()
-            if info <> invalid and info.contentId <> invalid then scene.incoming = info
+            ' Cast commands from the receiver (pause / resume / stop / seek) carry cmd and no contentId.
+            if info <> invalid and (info.contentId <> invalid or info.cmd <> invalid) then scene.incoming = info
         end if
     end while
 end sub

@@ -18,7 +18,7 @@ import urllib.parse, urllib.request
 import concurrent.futures as cf
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 APP_NAME = "云屏"
 ECP_PORT = 8060
 RECEIVER_PORT = 49494
@@ -409,6 +409,7 @@ class Receiver:
             self.loading_until = 0
             ecp(tv, "/input?cmd=stop")
         elif action == "Seek":
+            log("Seek", arg("Unit"), arg("Target"))
             ecp(tv, f"/input?cmd=seek&pos={seconds(arg('Target'))}")
         elif action == "GetTransportInfo":
             out = {"CurrentTransportState": self.transport()[0], "CurrentTransportStatus": "OK", "CurrentSpeed": "1"}
