@@ -2,7 +2,7 @@
 import os, sys, zipfile
 
 src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "roku")
-out = sys.argv[1] if len(sys.argv) > 1 else "yunping-roku.zip"
+out = sys.argv[1] if len(sys.argv) > 1 else "biliku-roku.zip"
 with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
     for root, _, files in os.walk(src):
         for name in sorted(files):

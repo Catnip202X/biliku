@@ -12,10 +12,10 @@ sub run()
     server.SetAddress(addr)
     server.NotifyReadable(true)
     if not server.Listen(4)
-        print "[yunping] manifest server: listen failed"
+        print "[biliku] manifest server: listen failed"
         return
     end if
-    print "[yunping] manifest server listening on 47800"
+    print "[biliku] manifest server listening on 47800"
 
     crlf = Chr(13) + Chr(10)
     conns = {}
@@ -74,5 +74,5 @@ sub respond(sock as Object, request as String, manifest as String, crlf as Strin
             sleep(5)
         end if
     end while
-    print "[yunping] served manifest "; sent; " bytes"
+    print "[biliku] served manifest "; sent; " bytes"
 end sub

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""云屏 YunPing companion — installs the 云屏 Bilibili app on a Roku and runs its cast receiver.
+"""Biliku 云屏 companion — installs the 云屏 Bilibili app on a Roku and runs its cast receiver.
 
 Runs on Windows, macOS and Linux with only the Python standard library (or as a standalone build).
 
-  yunping                     interactive menu (what double-clicking runs)
-  yunping discover            list Roku devices on the network
-  yunping install             install / update the 云屏 app on your Roku (needs developer mode)
-  yunping receiver            run the cast receiver: "云屏" shows up in phone apps' cast (投屏) lists
-  yunping autostart on|off    start the cast receiver automatically when you log in
-  yunping send <link>         play a Bilibili link / BV id / share text on the TV
-  yunping shortcut            (macOS) build the iPhone Share-sheet shortcut "投到电视"
+  biliku                     interactive menu (what double-clicking runs)
+  biliku discover            list Roku devices on the network
+  biliku install             install / update the 云屏 app on your Roku (needs developer mode)
+  biliku receiver            run the cast receiver: "云屏" shows up in phone apps' cast (投屏) lists
+  biliku autostart on|off    start the cast receiver automatically when you log in
+  biliku send <link>         play a Bilibili link / BV id / share text on the TV
+  biliku shortcut            (macOS) build the iPhone Share-sheet shortcut "投到电视"
 
 The chosen TV is remembered by serial number, so it is found again if its IP address changes.
 """
@@ -34,10 +34,10 @@ def log(*a):
 def config_dir():
     if IS_WIN:
         base = os.environ.get("APPDATA") or os.path.expanduser("~")
-        return os.path.join(base, "YunPing")
+        return os.path.join(base, "Biliku")
     if IS_MAC:
-        return os.path.expanduser("~/Library/Application Support/YunPing")
-    return os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "yunping")
+        return os.path.expanduser("~/Library/Application Support/Biliku")
+    return os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "biliku")
 
 
 def load_config():
@@ -166,13 +166,13 @@ def find_tv(interactive=True, forget=False):
 
 def app_package():
     """The 云屏 Roku app as zip bytes: bundled in standalone builds, else zipped from ../roku."""
-    bundled = os.path.join(getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))), "yunping-roku.zip")
+    bundled = os.path.join(getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))), "biliku-roku.zip")
     if os.path.exists(bundled):
         with open(bundled, "rb") as f:
             return f.read()
     src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "roku")
     if not os.path.isdir(src):
-        raise SystemExit("Roku app not found (expected yunping-roku.zip next to this program, or ../roku).")
+        raise SystemExit("Roku app not found (expected biliku-roku.zip next to this program, or ../roku).")
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         for root, _, files in os.walk(src):
@@ -194,9 +194,9 @@ def install(tv):
         print(DEV_MODE_HELP)
         return False
     data = app_package()
-    boundary = "----yunping" + uuid.uuid4().hex
+    boundary = "----biliku" + uuid.uuid4().hex
     body = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"mysubmit\"\r\n\r\nInstall\r\n"
-            f"--{boundary}\r\nContent-Disposition: form-data; name=\"archive\"; filename=\"yunping.zip\"\r\n"
+            f"--{boundary}\r\nContent-Disposition: form-data; name=\"archive\"; filename=\"biliku.zip\"\r\n"
             "Content-Type: application/zip\r\n\r\n").encode() + data + f"\r\n--{boundary}--\r\n".encode()
     print(f"Installing {APP_NAME} on {tv['name']} ({tv['ip']}), {len(data) // 1024} KB.")
     password = getpass.getpass("Roku developer password (the one you set when enabling developer mode): ")
@@ -334,8 +334,8 @@ class Receiver:
     def __init__(self, tv):
         self.tv = tv
         self.name = f"{APP_NAME} · {tv['name']}"
-        self.udn = "uuid:" + str(uuid.uuid5(uuid.NAMESPACE_DNS, "yunping-receiver-" + tv["serial"]))
-        self.server = f"{platform.system()} UPnP/1.0 YunPing/{VERSION}"
+        self.udn = "uuid:" + str(uuid.uuid5(uuid.NAMESPACE_DNS, "biliku-receiver-" + tv["serial"]))
+        self.server = f"{platform.system()} UPnP/1.0 Biliku/{VERSION}"
         self.ip = local_ip_towards(tv["ip"])
         self.location = f"http://{self.ip}:{RECEIVER_PORT}/description.xml"
         self.uri = self.meta = ""
@@ -385,7 +385,7 @@ class Receiver:
         return ('<?xml version="1.0" encoding="utf-8"?><root xmlns="urn:schemas-upnp-org:device-1-0" xmlns:dlna="urn:schemas-dlna-org:device-1-0">'
                 "<specVersion><major>1</major><minor>0</minor></specVersion><device>"
                 "<deviceType>urn:schemas-upnp-org:device:MediaRenderer:1</deviceType>"
-                f"<friendlyName>{name}</friendlyName><manufacturer>YunPing</manufacturer><modelName>{APP_NAME}</modelName>"
+                f"<friendlyName>{name}</friendlyName><manufacturer>Biliku</manufacturer><modelName>{APP_NAME}</modelName>"
                 "<modelDescription>Roku cast receiver</modelDescription><modelNumber>1</modelNumber>"
                 f"<UDN>{self.udn}</UDN><dlna:X_DLNADOC>DMR-1.50</dlna:X_DLNADOC><serviceList>{services}</serviceList></device></root>")
 
@@ -578,16 +578,16 @@ def installed_command():
         if os.path.abspath(sys.executable) != os.path.abspath(target):
             shutil.copy2(sys.executable, target)
         return [target]
-    target = os.path.join(dest, "yunping.py")
+    target = os.path.join(dest, "biliku.py")
     shutil.copy2(os.path.abspath(__file__), target)
-    pkg = os.path.join(dest, "yunping-roku.zip")
+    pkg = os.path.join(dest, "biliku-roku.zip")
     with open(pkg, "wb") as f:
         f.write(app_package())
     return [sys.executable, target]
 
 
 def autostart(enable):
-    label = "com.yunping.receiver"
+    label = "com.biliku.receiver"
     if IS_MAC:
         plist = os.path.expanduser(f"~/Library/LaunchAgents/{label}.plist")
         domain = f"gui/{os.getuid()}"
@@ -598,7 +598,7 @@ def autostart(enable):
             print("Cast receiver will no longer start at login.")
             return
         cmd = installed_command() + ["receiver"]
-        logfile = os.path.expanduser("~/Library/Logs/yunping-receiver.log")
+        logfile = os.path.expanduser("~/Library/Logs/biliku-receiver.log")
         args = "".join(f"<string>{html.escape(c)}</string>" for c in cmd)
         os.makedirs(os.path.dirname(plist), exist_ok=True)
         with open(plist, "w", encoding="utf-8") as f:
@@ -615,7 +615,7 @@ def autostart(enable):
         subprocess.run(["launchctl", "bootstrap", domain, plist], check=False)
         print(f"Cast receiver will start at login, and is running now. Log: {logfile}")
     elif IS_WIN:
-        startup = os.path.join(os.environ["APPDATA"], r"Microsoft\Windows\Start Menu\Programs\Startup", "YunPing receiver.vbs")
+        startup = os.path.join(os.environ["APPDATA"], r"Microsoft\Windows\Start Menu\Programs\Startup", "Biliku receiver.vbs")
         if not enable:
             if os.path.exists(startup):
                 os.remove(startup)
@@ -631,10 +631,10 @@ def autostart(enable):
               "If Windows Firewall asks, allow access on private networks.")
     else:
         unit_dir = os.path.expanduser("~/.config/systemd/user")
-        unit = os.path.join(unit_dir, "yunping-receiver.service")
+        unit = os.path.join(unit_dir, "biliku-receiver.service")
         has_systemd = shutil.which("systemctl") is not None
         if has_systemd:
-            subprocess.run(["systemctl", "--user", "disable", "--now", "yunping-receiver.service"], capture_output=True)
+            subprocess.run(["systemctl", "--user", "disable", "--now", "biliku-receiver.service"], capture_output=True)
         if not enable:
             if os.path.exists(unit):
                 os.remove(unit)
@@ -647,12 +647,12 @@ def autostart(enable):
         cmd = " ".join(f'"{c}"' for c in installed_command() + ["receiver"])
         os.makedirs(unit_dir, exist_ok=True)
         with open(unit, "w", encoding="utf-8") as f:
-            f.write(f"[Unit]\nDescription=YunPing cast receiver for Roku\nAfter=network-online.target\n\n"
+            f.write(f"[Unit]\nDescription=Biliku cast receiver for Roku\nAfter=network-online.target\n\n"
                     f"[Service]\nExecStart={cmd}\nRestart=always\nRestartSec=10\nEnvironment=PYTHONUNBUFFERED=1\n\n"
                     f"[Install]\nWantedBy=default.target\n")
         subprocess.run(["systemctl", "--user", "daemon-reload"], check=False)
-        subprocess.run(["systemctl", "--user", "enable", "--now", "yunping-receiver.service"], check=False)
-        print("Cast receiver will start at login, and is running now. Logs: journalctl --user -u yunping-receiver")
+        subprocess.run(["systemctl", "--user", "enable", "--now", "biliku-receiver.service"], check=False)
+        print("Cast receiver will start at login, and is running now. Logs: journalctl --user -u biliku-receiver")
 
 # ---------------------------------------------------------------- iPhone shortcut (macOS can sign it)
 
@@ -705,7 +705,7 @@ def need_tv():
 
 
 def menu():
-    print(f"{APP_NAME} YunPing companion {VERSION}")
+    print(f"{APP_NAME} Biliku companion {VERSION}")
     tv = need_tv()
     while True:
         print(f"\nRoku: {tv['name']} ({tv['ip']})\n"

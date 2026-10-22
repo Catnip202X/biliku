@@ -1,6 +1,8 @@
-# 云屏 YunPing
+# Biliku 云屏
 
 **An unofficial Bilibili app for Roku TVs**, with phone casting (投屏), danmaku and 1080P+.
+
+*Biliku* = Bili + Roku. Its Chinese name is 云屏 ("cloud screen").
 
 Roku has no Bilibili app. 云屏 is a Roku app you install yourself through Roku's developer mode, plus a small companion program for Windows, macOS or Linux that installs it and lets the Bilibili phone app cast to your TV.
 
@@ -28,17 +30,17 @@ From the [latest release](../../releases/latest):
 
 | Computer | File |
 |---|---|
-| Windows | `yunping-windows.exe` |
-| Mac with Apple Silicon (M1 and later) | `yunping-macos-apple-silicon` |
-| Mac with Intel | `yunping-macos-intel` |
-| Linux | `yunping-linux` |
+| Windows | `biliku-windows.exe` |
+| Mac with Apple Silicon (M1 and later) | `biliku-macos-apple-silicon` |
+| Mac with Intel | `biliku-macos-intel` |
+| Linux | `biliku-linux` |
 
 The programs aren't code-signed, so your OS will warn you the first time:
-- **macOS:** in Terminal, run `chmod +x ~/Downloads/yunping-macos-*` and `xattr -d com.apple.quarantine ~/Downloads/yunping-macos-*`, then run the file. You can also right-click it → Open.
+- **macOS:** in Terminal, run `chmod +x ~/Downloads/biliku-macos-*` and `xattr -d com.apple.quarantine ~/Downloads/biliku-macos-*`, then run the file. You can also right-click it → Open.
 - **Windows:** on the SmartScreen warning, click **More info → Run anyway**. When Windows Firewall asks, allow access on **private networks**.
-- **Linux:** run `chmod +x yunping-linux`, then `./yunping-linux`.
+- **Linux:** run `chmod +x biliku-linux`, then `./biliku-linux`.
 
-Prefer Python? `python3 companion/yunping.py` from a checkout of this repo does the same thing, using only the standard library.
+Prefer Python? `python3 companion/biliku.py` from a checkout of this repo does the same thing, using only the standard library.
 
 ### 3. Install 云屏 on the TV
 
@@ -59,13 +61,13 @@ To use it: in the Bilibili app, tap **Share → More → 投到电视**. It send
 ## Command line
 
 ```
-yunping                     interactive menu
-yunping discover            list Roku devices on the network
-yunping install             install / update 云屏 on the Roku
-yunping receiver            run the cast receiver in this window
-yunping autostart on|off    start the cast receiver at login (or stop doing so)
-yunping send <link>         play a Bilibili link / BV id / share text on the TV
-yunping shortcut            (macOS) build the iPhone share shortcut
+biliku                     interactive menu
+biliku discover            list Roku devices on the network
+biliku install             install / update 云屏 on the Roku
+biliku receiver            run the cast receiver in this window
+biliku autostart on|off    start the cast receiver at login (or stop doing so)
+biliku send <link>         play a Bilibili link / BV id / share text on the TV
+biliku shortcut            (macOS) build the iPhone share shortcut
 ```
 
 ## Limitations

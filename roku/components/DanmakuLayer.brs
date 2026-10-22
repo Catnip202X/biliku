@@ -49,7 +49,7 @@ sub onItems()
     clearAll()
     m.items = m.top.items
     if m.items = invalid then m.items = []
-    print "[yunping] danmaku layer got "; m.items.Count(); " items"
+    print "[biliku] danmaku layer got "; m.items.Count(); " items"
     m.spawned = 0
     seekTo(m.top.position)
 end sub
@@ -175,7 +175,7 @@ sub spawn(item as Object, now as Integer)
     end if
 
     m.spawned = m.spawned + 1
-    if m.spawned <= 3 or m.spawned mod 50 = 0 then print "[yunping] danmaku shown #"; m.spawned; " at "; now; "ms: "; Left(item.text, 20)
+    if m.spawned <= 3 or m.spawned mod 50 = 0 then print "[biliku] danmaku shown #"; m.spawned; " at "; now; "ms: "; Left(item.text, 20)
     anim.id = id + "a"
     anim.observeField("state", "onAnimState")
     m.live[id] = { group: g, anim: anim }

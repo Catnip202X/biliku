@@ -4,6 +4,6 @@ dist/
 __pycache__/
 *.pyc
 .DS_Store
-companion/yunping-roku.zip
-yunping-roku.zip
+companion/biliku-roku.zip
+biliku-roku.zip
 *.shortcut

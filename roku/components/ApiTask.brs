@@ -27,7 +27,7 @@ sub run()
         sec = CreateObject("roRegistrySection", "auth")
         sec.Delete("cookie")
         sec.Flush()
-        print "[yunping] logged out"
+        print "[biliku] logged out"
         m.top.response = { kind: "logout" }
     end if
 end sub
@@ -50,9 +50,9 @@ function httpGet(url as String, userAgent = "Mozilla/5.0" as String) as String
     if type(msg) = "roUrlEvent"
         m.lastHeaders = msg.GetResponseHeadersArray()
         if msg.GetResponseCode() = 200 then return msg.GetString()
-        print "[yunping] HTTP "; msg.GetResponseCode(); " "; Left(url, 90)
+        print "[biliku] HTTP "; msg.GetResponseCode(); " "; Left(url, 90)
     else
-        print "[yunping] timeout "; Left(url, 90)
+        print "[biliku] timeout "; Left(url, 90)
     end if
     xfer.AsyncCancel()
     return ""
@@ -131,7 +131,7 @@ function fetchFeed(key as String) as Object
         if query = "" then return items
         json = getJson("https://api.bilibili.com/x/web-interface/wbi/index/top/feed/rcmd?" + query)
         if json = invalid or json.code <> 0 or json.data = invalid or json.data.item = invalid
-            print "[yunping] rcmd failed"
+            print "[biliku] rcmd failed"
             return items
         end if
         list = json.data.item
@@ -153,7 +153,7 @@ function fetchFeed(key as String) as Object
             items.Push({ bvid: v.bvid, title: v.title, pic: thumbUrl(v.pic), author: author, duration: formatDuration(v.duration) })
         end if
     end for
-    print "[yunping] feed "; key; ": "; items.Count(); " videos"
+    print "[biliku] feed "; key; ": "; items.Count(); " videos"
     return items
 end function
 
@@ -171,7 +171,7 @@ function fetchDanmaku(cid as String, duration as Integer) as Object
         if bytes <> invalid then parseDmSegment(bytes, items)
     end for
     items.SortBy("t")
-    print "[yunping] danmaku: "; items.Count(); " in "; segments; " segments"
+    print "[biliku] danmaku: "; items.Count(); " in "; segments; " segments"
     return items
 end function
 
@@ -291,7 +291,7 @@ function fetchAccount() as Object
         result.loggedIn = true
         result.name = nav.data.uname
     end if
-    print "[yunping] account loggedIn="; result.loggedIn
+    print "[biliku] account loggedIn="; result.loggedIn
     return result
 end function
 
@@ -336,7 +336,7 @@ function qrPoll(key as String) as Object
         for each name in found
             cookies.Push(found[name])
         end for
-        print "[yunping] login cookies found: "; cookies.Count()
+        print "[biliku] login cookies found: "; cookies.Count()
         if cookies.Count() = 0
             result.status = -2
             return result
@@ -353,7 +353,7 @@ end function
 function resolvePlay(req as Object) as Object
     result = { kind: "play", token: req.token, ok: false }
     target = req.target
-    print "[yunping] resolve: "; target
+    print "[biliku] resolve: "; target
     if Instr(1, target, "%") > 0 then target = CreateObject("roUrlTransfer").Unescape(target)
 
     ' "cid:<cid>" comes from a 投屏 cast: the cast only carries the part's cid, so find its video first.
@@ -390,7 +390,7 @@ function resolvePlay(req as Object) as Object
         if Len(shown) > 60 then shown = Left(shown, 60) + "…"
         if shown = "" then shown = "(empty)"
         result.error = "无法识别视频链接  ·  Unrecognized link: " + shown
-        print "[yunping] no video id in: "; target
+        print "[biliku] no video id in: "; target
         return result
     end if
 
@@ -448,7 +448,7 @@ function resolvePlay(req as Object) as Object
         return result
     end if
 
-    print "[yunping] stream "; id; " p"; page; " quality "; play.data.quality
+    print "[biliku] stream "; id; " p"; page; " quality "; play.data.quality
     result.ok = true
     result.url = play.data.durl[0].url
     result.quality = "720P"
@@ -468,7 +468,7 @@ function resolveDash(id as String, cid as String) as Dynamic
     if query = "" then return invalid
     json = getJson("https://api.bilibili.com/x/player/wbi/playurl?" + query)
     if json = invalid or json.code <> 0 or json.data = invalid or json.data.dash = invalid
-        print "[yunping] dash unavailable"
+        print "[biliku] dash unavailable"
         return invalid
     end if
     dash = json.data.dash
@@ -535,7 +535,7 @@ function resolveDash(id as String, cid as String) as Dynamic
         auto = auto + audioSet + "</Period>" + Chr(10) + "</MPD>" + Chr(10)
         qualities.Unshift({ id: 0, label: "自动 Auto · 最高 " + qualities[0].label, codec: "AVC", mpd: auto, rep: "" })
     end if
-    print "[yunping] dash "; id; " qualities: "; qualities.Count(); ", best "; qualities[0].label; " (avc 4k "; avc4k; ")"
+    print "[biliku] dash "; id; " qualities: "; qualities.Count(); ", best "; qualities[0].label; " (avc 4k "; avc4k; ")"
     return { qualities: qualities, duration: duration }
 end function
 
@@ -600,7 +600,7 @@ function bvidForCid(cid as String, title as String) as String
             ' In each history entry, "bvid" comes before "cid"; take the nearest one.
             found = CreateObject("roRegex", """bvid"":""(BV[0-9A-Za-z]{10})""", "").MatchAll(Left(history, at))
             if found.Count() > 0
-                print "[yunping] cast cid "; cid; " found in history: "; found[found.Count() - 1][1]
+                print "[biliku] cast cid "; cid; " found in history: "; found[found.Count() - 1][1]
                 return found[found.Count() - 1][1]
             end if
         end if
@@ -618,7 +618,7 @@ function bvidForCid(cid as String, title as String) as String
                     pages = httpGet("https://api.bilibili.com/x/player/pagelist?bvid=" + r.bvid)
                     for each mark in marks
                         if Instr(1, pages, mark) > 0
-                            print "[yunping] cast cid "; cid; " found by title search: "; r.bvid
+                            print "[biliku] cast cid "; cid; " found by title search: "; r.bvid
                             return r.bvid
                         end if
                     end for
@@ -626,7 +626,7 @@ function bvidForCid(cid as String, title as String) as String
             end for
         end if
     end if
-    print "[yunping] cast cid "; cid; " not found"
+    print "[biliku] cast cid "; cid; " not found"
     return ""
 end function
 

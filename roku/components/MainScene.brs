@@ -285,7 +285,7 @@ end sub
 sub onIncoming()
     info = m.top.incoming
     if info = invalid then return
-    print "[yunping] incoming: "; FormatJson(info)
+    print "[biliku] incoming: "; FormatJson(info)
 
     if info.cmd <> invalid
         handleCastCommand(info)
@@ -401,7 +401,7 @@ sub startVideo(url as String, title as String, startAt as Float)
     m.videoTitleLabel.text = title + "      按 ↓ 画质 / 弹幕  ·  ↓ for quality & danmaku"
     showVideoTitle(5)
     content.HttpHeaders = ["Referer:https://www.bilibili.com", "User-Agent:Mozilla/5.0"]
-    print "[yunping] play "; format; ": "; Left(url, 120)
+    print "[biliku] play "; format; ": "; Left(url, 120)
 
     m.video.control = "stop"
     m.video.content = content
@@ -479,7 +479,7 @@ function recoverIfCutShort(state as String) as Boolean
     midError = state = "error" and m.lastPosition > 5
     if not cutShort and not midError then return false
     m.retries = m.retries + 1
-    print "[yunping] stream stopped at "; Int(m.lastPosition); "s ("; state; " "; m.video.errorCode; " "; m.video.errorMsg; " "; FormatJson(m.video.errorInfo); "), retry "; m.retries
+    print "[biliku] stream stopped at "; Int(m.lastPosition); "s ("; state; " "; m.video.errorCode; " "; m.video.errorMsg; " "; FormatJson(m.video.errorInfo); "), retry "; m.retries
     showToast("网络中断，正在恢复…  Stream dropped, resuming…", 3)
     playQuality(m.qualityIndex, m.lastPosition)
     return true
@@ -501,7 +501,7 @@ end sub
 
 sub onVideoState()
     state = m.video.state
-    print "[yunping] player "; state; " at "; Int(m.video.position); "s of "; Int(m.video.duration); "s"
+    print "[biliku] player "; state; " at "; Int(m.video.position); "s of "; Int(m.video.duration); "s"
     m.danmaku.playing = (state = "playing")
     if state = "playing" and m.pendingSeek <> invalid and m.pendingSeek > 0
         m.video.seek = m.pendingSeek
@@ -521,7 +521,7 @@ sub onVideoState()
             closeVideo()
         end if
     else if state = "error"
-        print "[yunping] playback error "; m.video.errorCode; " "; m.video.errorMsg; " "; m.video.errorStr; " "; FormatJson(m.video.errorInfo)
+        print "[biliku] playback error "; m.video.errorCode; " "; m.video.errorMsg; " "; m.video.errorStr; " "; FormatJson(m.video.errorInfo)
         ' A quality this TV can't play (fails before playing): step down to the next one.
         if m.qualities <> invalid and m.qualityIndex < m.qualities.Count() - 1 and m.lastPosition < 5
             failed = m.qualities[m.qualityIndex].label
@@ -569,7 +569,7 @@ function onKeyEvent(key as String, press as Boolean) as Boolean
     end if
     ' ↓ / ↑ open the player menu. (* is the TV's own settings menu during playback.)
     if (key = "down" or key = "up") and m.video.visible
-        print "[yunping] player menu opened"
+        print "[biliku] player menu opened"
         openQualityMenu()
         return true
     end if
