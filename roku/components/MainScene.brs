@@ -18,6 +18,7 @@ sub init()
     m.videoTitleTimer = m.top.findNode("videoTitleTimer")
     m.danmaku = m.top.findNode("danmaku")
     m.controls = m.top.findNode("controls")
+    m.seekCover = m.top.findNode("seekCover")
     m.chapters = []
     m.parts = []
     m.qualities = invalid
@@ -35,6 +36,7 @@ sub init()
         m.loginTitle.font = makeFont(m.global.cjkFont, 48)
         m.loginStatus.font = makeFont(m.global.cjkFont, 32)
         m.videoTitleLabel.font = makeFont(m.global.cjkFont, 44)
+        m.top.findNode("seekCoverLabel").font = makeFont(m.global.cjkFont, 32)
     end if
 
     m.hint.text = "在手机上分享视频即可投送  ·  Share from your phone to " + deviceIp()
@@ -82,6 +84,11 @@ sub init()
     refreshAccount()
     refreshFeeds()
     m.rows.setFocus(true)
+    if m.global.fullFont <> true then startTask("font", { kind: "fetchFont" }, "onFontFetched")
+end sub
+
+sub onFontFetched(event as Object)
+    if event.getData().ok then showToast("完整中文字体已下载，重新打开应用后生效  ·  Full Chinese font ready: reopen the app", 6)
 end sub
 
 function makeFont(uri as String, size as Integer) as Object
@@ -307,6 +314,7 @@ sub onIncoming()
             ' finishes. The lookup checks the saved login itself.)
             playTarget("cid:" + cidMatch[1], "", title, "投屏，正在获取高清…  Cast received, fetching HD…")
             m.castFallback = { url: info.url, title: title }
+            m.castLoading = true
         else
             playDirect(info.url, title)
         end if
@@ -320,6 +328,12 @@ end sub
 
 sub handleCastCommand(info as Object)
     cmd = info.cmd
+    ' The phone seeks to its position right after starting a cast, usually before the TV has the
+    ' HD stream ready. Keep it and start there.
+    if cmd = "seek" and info["pos"] <> invalid and (m.castLoading = true or not m.video.visible)
+        m.castStartAt = Val(info["pos"])
+        return
+    end if
     if not m.video.visible then return
     if cmd = "pause"
         m.video.control = "pause"
@@ -328,7 +342,7 @@ sub handleCastCommand(info as Object)
     else if cmd = "stop"
         closeVideo()
     else if cmd = "seek" and info["pos"] <> invalid
-        m.video.seek = Val(info["pos"])
+        seekTo(Val(info["pos"]))
     end if
 end sub
 
@@ -338,6 +352,8 @@ sub playTarget(target as String, p as String, title as String, message as String
     m.playToken = m.playToken + 1
     m.pendingTitle = title
     m.castFallback = invalid
+    m.castLoading = false
+    m.castStartAt = invalid
     showToast(message, 0)
     m.playTask = invalid
     task = CreateObject("roSGNode", "ApiTask")
@@ -354,7 +370,12 @@ sub onPlayResolved(event as Object)
         if m.castFallback <> invalid
             fallback = m.castFallback
             m.castFallback = invalid
+            startAt = 0
+            if m.castStartAt <> invalid then startAt = m.castStartAt
+            m.castLoading = false
+            m.castStartAt = invalid
             playDirect(fallback.url, fallback.title)
+            if startAt > 0 then m.pendingSeek = startAt
             showToast("未找到高清版本，使用手机画质  ·  HD not found, using the phone's stream", 5)
         else
             showToast(res.error, 8)
@@ -369,10 +390,14 @@ sub onPlayResolved(event as Object)
     if res.pageCount > 1 then displayTitle = title + "  (P" + res.page.ToStr() + "/" + res.pageCount.ToStr() + ")"
     m.displayTitle = displayTitle
     m.retries = 0
+    m.queuedSeek = invalid
     m.lastPosition = 0
     m.danmaku.items = []
     resumeAt = 0
     if res.resumeAt <> invalid then resumeAt = res.resumeAt
+    if m.castStartAt <> invalid and m.castStartAt > 0 then resumeAt = m.castStartAt
+    m.castLoading = false
+    m.castStartAt = invalid
     if res.qualities <> invalid
         m.qualities = res.qualities
         playQuality(0, resumeAt)
@@ -406,8 +431,17 @@ end sub
 sub startVideo(url as String, title as String, startAt as Float)
     content = CreateObject("roSGNode", "ContentNode")
     content.url = url
-    ' Roku ignores PlayStart for these DASH streams, so also seek once playback starts.
+    ' Roku often ignores PlayStart for these DASH streams, so also seek once playback starts,
+    ' behind a black cover with the sound muted so the jump from 0:00 isn't seen or heard.
     m.pendingSeek = startAt
+    m.pendingSeekSent = false
+    if startAt > 0
+        content.PlayStart = startAt
+        m.seekCover.visible = true
+        m.video.mute = true
+    else
+        revealVideo()
+    end if
     format = "mp4"
     lower = LCase(url)
     if Instr(1, lower, ".m3u8") > 0 then format = "hls"
@@ -479,7 +513,7 @@ sub onControlAction()
         hideControls()
         playQuality(a.index, m.lastPosition)
     else if a.type = "chapter" and a.index < m.chapters.Count()
-        m.video.seek = m.chapters[a.index].start
+        seekTo(m.chapters[a.index].start)
     else if a.type = "part" and m.current <> invalid and a.index + 1 <> m.current.page
         hideControls()
         playTarget(m.current.bvid, (a.index + 1).ToStr(), m.current.title, "正在加载…  Loading…")
@@ -504,6 +538,18 @@ sub onDanmaku(event as Object)
     res = event.getData()
     if res = invalid or res.token <> m.playToken then return
     m.danmaku.items = res.items
+end sub
+
+' The player ignores a seek while it's still buffering from the previous one, so it would carry on
+' to the earlier target. Hold the newest request and apply it once the player is ready.
+sub seekTo(target as Float)
+    state = m.video.state
+    if state = "playing" or state = "paused"
+        m.queuedSeek = invalid
+        m.video.seek = target
+    else
+        m.queuedSeek = target
+    end if
 end sub
 
 sub onVideoPosition()
@@ -560,14 +606,29 @@ sub hideVideoTitle()
     m.videoTitle.visible = false
 end sub
 
+sub revealVideo()
+    m.seekCover.visible = false
+    m.video.mute = false
+end sub
+
 sub onVideoState()
     state = m.video.state
     print "[biliku] player "; state; " at "; Int(m.video.position); "s of "; Int(m.video.duration); "s"
     m.danmaku.playing = (state = "playing")
     if m.controls.visible then m.controls.paused = (state = "paused")
     if state = "playing" and m.pendingSeek <> invalid and m.pendingSeek > 0
-        m.video.seek = m.pendingSeek
-        m.pendingSeek = 0
+        if m.video.position < m.pendingSeek - 3 and not m.pendingSeekSent
+            ' Started from the beginning: jump (still covered) and reveal once there.
+            m.pendingSeekSent = true
+            m.video.seek = m.pendingSeek
+        else
+            m.pendingSeek = 0
+            revealVideo()
+        end if
+    else if (state = "playing" or state = "paused") and m.queuedSeek <> invalid
+        target = m.queuedSeek
+        m.queuedSeek = invalid
+        m.video.seek = target
     end if
     if recoverIfCutShort(state) then return
     if state = "paused"
@@ -584,6 +645,7 @@ sub onVideoState()
             closeVideo()
         end if
     else if state = "error"
+        revealVideo()
         print "[biliku] playback error "; m.video.errorCode; " "; m.video.errorMsg; " "; m.video.errorStr; " "; FormatJson(m.video.errorInfo)
         ' A quality this TV can't play (fails before playing): step down to the next one.
         if m.qualities <> invalid and m.qualityIndex < m.qualities.Count() - 1 and m.lastPosition < 5
@@ -603,6 +665,8 @@ sub closeVideo()
     m.playToken = m.playToken + 1
     m.video.control = "stop"
     m.video.visible = false
+    m.pendingSeek = 0
+    revealVideo()
     m.videoTitleTimer.control = "stop"
     m.videoTitle.visible = false
     m.controls.visible = false

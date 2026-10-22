@@ -11,11 +11,22 @@ sub Main(args as Dynamic)
 
     ' Roku's system fonts have no Chinese glyphs; use a bundled font when one is present.
     ' roFileSystem only works on the main thread, so the check lives here.
+    ' The bundled font is a 2 MB subset (GB2312, ~6,800 characters) to fit Roku's package limit.
+    ' The full Noto Sans SC (~27,800 Chinese characters incl. traditional and Japanese kanji) is
+    ' downloaded once into the cache by ApiTask "fetchFont" and preferred from the next launch.
     cjkFont = ""
+    fullFont = false
     fs = CreateObject("roFileSystem")
     for each path in ["pkg:/fonts/cjk.otf", "pkg:/fonts/cjk.ttf"]
         if fs.Exists(path) then cjkFont = path
     end for
+    if fs.Exists("cachefs:/fonts/NotoSansSC-Regular.otf")
+        st = fs.Stat("cachefs:/fonts/NotoSansSC-Regular.otf")
+        if st <> invalid and st.size = 8331336
+            cjkFont = "cachefs:/fonts/NotoSansSC-Regular.otf"
+            fullFont = true
+        end if
+    end if
     ' Danmaku settings (keys kept lowercase: associative-array keys are case-insensitive).
     dm = { enabled: true, scroll: true, fixed: true, color: true, avoidsubs: false, area: 50, opacity: 100, size: 100, speed: 3 }
     saved = CreateObject("roRegistrySection", "danmaku")
@@ -27,7 +38,7 @@ sub Main(args as Dynamic)
             end for
         end if
     end if
-    screen.GetGlobalNode().addFields({ cjkFont: cjkFont, dmSettings: dm })
+    screen.GetGlobalNode().addFields({ cjkFont: cjkFont, fullFont: fullFont, dmSettings: dm })
 
     scene = screen.CreateScene("MainScene")
     screen.Show()

@@ -23,6 +23,8 @@ sub run()
         m.top.response = qrGenerate()
     else if req.kind = "qrPoll"
         m.top.response = qrPoll(req.key)
+    else if req.kind = "fetchFont"
+        m.top.response = fetchFullFont()
     else if req.kind = "dmFilters"
         m.top.response = fetchDmFilters()
     else if req.kind = "saveDmSettings"
@@ -325,6 +327,38 @@ function fetchDmFilters() as Object
     return result
 end function
 
+' Full Noto Sans SC (SIL OFL), pinned to the noto-cjk Sans2.004 release. Downloaded to a .part file
+' and only kept if the size matches exactly, so an interrupted download is never used.
+function fetchFullFont() as Object
+    final = "cachefs:/fonts/NotoSansSC-Regular.otf"
+    part = final + ".part"
+    fs = CreateObject("roFileSystem")
+    fs.CreateDirectory("cachefs:/fonts")
+    if fs.Exists(part) then fs.Delete(part)
+    port = CreateObject("roMessagePort")
+    xfer = CreateObject("roUrlTransfer")
+    xfer.SetMessagePort(port)
+    xfer.SetCertificatesFile("common:/certs/ca-bundle.crt")
+    xfer.InitClientCertificates()
+    xfer.SetUrl("https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@Sans2.004/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf")
+    ok = false
+    if xfer.AsyncGetToFile(part)
+        msg = wait(300000, port)
+        if type(msg) = "roUrlEvent" and msg.GetResponseCode() = 200
+            st = fs.Stat(part)
+            if st <> invalid and st.size = 8331336
+                if fs.Exists(final) then fs.Delete(final)
+                ok = fs.Rename(part, final)
+            end if
+        else
+            xfer.AsyncCancel()
+        end if
+    end if
+    if not ok and fs.Exists(part) then fs.Delete(part)
+    print "[biliku] full font download: "; ok
+    return { kind: "fetchFont", ok: ok }
+end function
+
 ' ---------- account / QR login ----------
 
 function fetchAccount() as Object
@@ -492,7 +526,12 @@ function resolvePlay(req as Object) as Object
         end for
     end if
 
-    ' Resume where this video was left off. Casts follow the phone's position instead.
+    ' Resume where this video was left off. Casts start where the phone was (from watch history;
+    ' the phone's own seek, if it arrives in time, overrides this in the scene).
+    if wantCid <> "" and m.castProgress <> invalid and m.castProgress > 0
+        result.resumeAt = m.castProgress
+        print "[biliku] cast resumes at history position "; m.castProgress
+    end if
     if wantCid = ""
         positions = CreateObject("roRegistrySection", "positions")
         key = result.bvid + "_" + page.ToStr()
@@ -669,6 +708,9 @@ function bvidForCid(cid as String, title as String) as String
         if at > 0
             ' In each history entry, "bvid" comes before "cid"; take the nearest one.
             found = CreateObject("roRegex", """bvid"":""(BV[0-9A-Za-z]{10})""", "").MatchAll(Left(history, at))
+            ' The same history entry records how far the phone got ("progress", seconds; -1 = finished).
+            progress = CreateObject("roRegex", """progress"":(-?\d+)", "").Match(Mid(history, at, 800))
+            if progress.Count() > 1 then m.castProgress = Val(progress[1])
             if found.Count() > 0
                 print "[biliku] cast cid "; cid; " found in history: "; found[found.Count() - 1][1]
                 return found[found.Count() - 1][1]

@@ -1,7 +1,8 @@
-**New in 0.2.0:**
-- **Player bar:** press **↓** during playback for play/pause, a progress bar with chapter marks, **章节** chapter list, **选集** part list, **画质** quality, a **弹幕** on/off switch and **弹幕设置**.
-- **Danmaku settings:** show or hide scrolling / top & bottom / coloured danmaku, **防挡字幕** (keep clear of subtitles), display area, opacity, size and speed. Remembered on the TV.
-- **Block list sync:** your Bilibili account's blocked danmaku keywords, patterns and users are applied on the TV.
+**New in 0.2.1:**
+- **Full Chinese font:** on first launch the app downloads the complete Noto Sans SC (about 27,800 Chinese characters, including traditional characters and Japanese kanji) and uses it from the next launch on, so far fewer titles and danmaku show boxes. Korean and emoji still can't be shown.
+- **Casts start where you were** on your phone, using the phone's position or your watch history.
+- **No more flash of 0:00 when resuming:** the screen stays black ("定位中…") until playback reaches your position.
+- **Fixed:** picking chapters quickly could land on an earlier pick, and the danmaku settings could stop responding to ↑/↓ after a background stream reload.
 
 Update the Roku app with the companion (option **1**).
 

@@ -18,7 +18,7 @@ import urllib.parse, urllib.request
 import concurrent.futures as cf
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 APP_NAME = "云屏"
 ECP_PORT = 8060
 RECEIVER_PORT = 49494

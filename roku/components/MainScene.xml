@@ -38,6 +38,12 @@
 
     <DanmakuLayer id="danmaku" />
 
+    <!-- Hides the first frames while playback jumps to a resume / cast position. -->
+    <Group id="seekCover" visible="false">
+      <Rectangle width="1920" height="1080" color="0x000000FF" />
+      <Label id="seekCoverLabel" text="定位中…  Seeking…" translation="[0,510]" width="1920" horizAlign="center" font="font:MediumSystemFont" color="0x8A97A6FF" />
+    </Group>
+
     <!-- In-player bar (press ↓ during playback) -->
     <PlayerControls id="controls" visible="false" />
 
