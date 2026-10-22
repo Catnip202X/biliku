@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Serves the current DASH manifest to the app's own Video node at http://127.0.0.1:47800/<n>.mpd.
+     Roku's player only loads DASH manifests over HTTP, and Bilibili gives stream data as JSON. -->
+<component name="ManifestServer" extends="Task">
+  <interface>
+    <field id="manifest" type="string" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/ManifestServer.brs" />
+</component>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Draws danmaku over the video. The scene feeds it the comment list and the player's position / state. -->
+<component name="DanmakuLayer" extends="Group">
+  <interface>
+    <field id="items" type="array" onChange="onItems" />
+    <field id="position" type="float" onChange="onPosition" />
+    <field id="playing" type="boolean" value="false" onChange="onPlaying" />
+    <field id="enabled" type="boolean" value="true" onChange="onEnabled" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/DanmakuLayer.brs" />
+  <children>
+    <Timer id="tick" repeat="true" duration="0.1" />
+  </children>
+</component>

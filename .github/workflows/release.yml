@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: yunping-windows.exe
+          - os: macos-14
+            name: yunping-macos-apple-silicon
+          - os: macos-13
+            name: yunping-macos-intel
+          - os: ubuntu-22.04
+            name: yunping-linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build the Roku app package
+        run: python scripts/package_roku.py companion/yunping-roku.zip
+      - name: Build the companion
+        shell: bash
+        run: |
+          pip install pyinstaller==6.11.1
+          sep=":"; [ "$RUNNER_OS" = "Windows" ] && sep=";"
+          pyinstaller --onefile --console --name "${{ matrix.name }}" \
+            --add-data "companion/yunping-roku.zip${sep}." companion/yunping.py
+      - name: Smoke test
+        shell: bash
+        run: ./dist/${{ matrix.name }} --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist/${{ matrix.name }}
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Build the Roku app package
+        run: python3 scripts/package_roku.py artifacts/yunping-roku.zip
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          chmod +x artifacts/yunping-macos-* artifacts/yunping-linux
+          gh release create "$GITHUB_REF_NAME" artifacts/* --title "云屏 YunPing $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md

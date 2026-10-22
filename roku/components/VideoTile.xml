@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="VideoTile" extends="Group">
+  <interface>
+    <field id="itemContent" type="node" onChange="onContent" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/VideoTile.brs" />
+  <children>
+    <Rectangle width="352" height="198" color="0x1E252DFF" />
+    <Poster id="poster" width="352" height="198" loadDisplayMode="scaleToZoom" />
+    <Rectangle id="badge" translation="[262,160]" width="84" height="32" color="0x000000B0" />
+    <Label id="duration" translation="[262,160]" width="84" height="32" horizAlign="center" vertAlign="center" font="font:SmallestSystemFont" color="0xFFFFFFFF" />
+    <Label id="title" translation="[0,208]" width="352" height="74" wrap="true" maxLines="2" font="font:SmallSystemFont" color="0xE6EDF3FF" />
+    <Label id="meta" translation="[0,288]" width="352" height="30" font="font:SmallestSystemFont" color="0x8A97A6FF" />
+  </children>
+</component>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Runs one Bilibili API request off the render thread. Create one per request. -->
+<component name="ApiTask" extends="Task">
+  <interface>
+    <field id="request" type="assocarray" />
+    <field id="response" type="assocarray" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/ApiTask.brs" />
+</component>

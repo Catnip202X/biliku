@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="MainScene" extends="Scene">
+  <interface>
+    <!-- Set by main.brs whenever something arrives over the network (launch args or roInputEvent):
+         contentId = a link to resolve, url (+ title) = a stream to play as-is, cmd = pause/resume/stop/seek. -->
+    <field id="incoming" type="assocarray" alwaysNotify="true" onChange="onIncoming" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+  <script type="text/brightscript" uri="pkg:/components/Qr.brs" />
+
+  <children>
+    <Rectangle id="bg" width="1920" height="1080" color="0x101418FF" />
+
+    <Poster id="logo" uri="pkg:/images/logo.png" translation="[96,56]" width="96" height="72" />
+    <Label id="brand" text="云屏" translation="[212,52]" font="font:LargeBoldSystemFont" color="0xF2F5F8FF" />
+    <Label id="hint" translation="[214,118]" font="font:SmallSystemFont" color="0x8A97A6FF" />
+    <Label id="account" translation="[1024,64]" width="800" horizAlign="right" font="font:SmallSystemFont" color="0x8A97A6FF" />
+
+    <Label id="status" text="正在加载…  Loading…" translation="[96,520]" width="1728" horizAlign="center" font="font:MediumSystemFont" color="0x8A97A6FF" />
+
+    <RowList
+      id="rows"
+      translation="[96,188]"
+      itemComponentName="VideoTile"
+      numRows="2"
+      itemSize="[1824,392]"
+      itemSpacing="[0,20]"
+      rowItemSize="[[352,322]]"
+      rowItemSpacing="[[28,0]]"
+      showRowLabel="[true]"
+      rowLabelOffset="[[0,14]]"
+      rowLabelColor="0xE6EDF3FF"
+      rowFocusAnimationStyle="floatingFocus"
+      vertFocusAnimationStyle="fixedFocus" />
+
+    <Video id="video" width="1920" height="1080" visible="false" />
+
+    <DanmakuLayer id="danmaku" />
+
+    <!-- Quality / danmaku menu during playback (press *) -->
+    <Group id="qualityMenu" visible="false" translation="[1280,0]">
+      <Rectangle width="640" height="1080" color="0x0B0E12EC" />
+      <Label id="qualityTitle" text="画质  ·  Quality" translation="[56,80]" font="font:LargeBoldSystemFont" color="0xF2F5F8FF" />
+      <LabelList id="qualityList" translation="[56,170]" itemSize="[528,76]" color="0xC8D0D8FF" focusedColor="0x101418FF" focusBitmapBlendColor="0x5BC8F5FF" />
+    </Group>
+
+    <!-- The Video node's own title bar can't use a custom font (Chinese shows as boxes),
+         so the player gets no title and this overlay shows it instead. -->
+    <Group id="videoTitle" visible="false">
+      <Rectangle width="1920" height="150" color="0x000000B0" />
+      <Label id="videoTitleLabel" translation="[96,40]" width="1728" height="70" vertAlign="center" font="font:LargeBoldSystemFont" color="0xF2F5F8FF" />
+    </Group>
+
+    <!-- QR login / account screen -->
+    <Group id="login" visible="false">
+      <Rectangle width="1920" height="1080" color="0x0B0E12F4" />
+      <Label id="loginTitle" translation="[0,110]" width="1920" horizAlign="center" font="font:LargeBoldSystemFont" color="0xF2F5F8FF" />
+      <Rectangle id="qrBg" color="0xFFFFFFFF" />
+      <Group id="qrModules" />
+      <Label id="loginStatus" translation="[0,880]" width="1920" horizAlign="center" font="font:MediumSystemFont" color="0x8A97A6FF" />
+    </Group>
+
+    <Group id="toast" visible="false" translation="[410,940]">
+      <Rectangle id="toastBg" width="1100" height="76" color="0x1E2630EE" />
+      <Label id="toastLabel" width="1100" height="76" horizAlign="center" vertAlign="center" font="font:MediumSystemFont" color="0xF2F5F8FF" />
+    </Group>
+
+    <Timer id="toastTimer" repeat="false" />
+    <Timer id="pollTimer" repeat="true" duration="2" />
+    <Timer id="videoTitleTimer" repeat="false" duration="5" />
+  </children>
+</component>
