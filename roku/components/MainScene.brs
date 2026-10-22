@@ -363,15 +363,19 @@ sub onPlayResolved(event as Object)
     m.displayTitle = displayTitle
     m.retries = 0
     m.lastPosition = 0
+    m.lastSavedAt = invalid
     m.danmaku.items = []
+    resumeAt = 0
+    if res.resumeAt <> invalid then resumeAt = res.resumeAt
     if res.qualities <> invalid
         m.qualities = res.qualities
-        playQuality(0, 0)
+        playQuality(0, resumeAt)
     else
         m.qualities = invalid
-        startVideo(res.url, displayTitle, 0)
+        startVideo(res.url, displayTitle, resumeAt)
         if res.quality <> invalid then showToast(res.quality, 3) else hideToast()
     end if
+    if resumeAt > 0 then showToast("从 " + clockText(resumeAt) + " 继续  ·  Resuming at " + clockText(resumeAt), 4)
     m.current = { bvid: res.bvid, page: res.page, pageCount: res.pageCount, title: title }
     if res.cid <> invalid then startTask("danmaku", { kind: "danmaku", cid: res.cid, duration: res.duration, token: m.playToken }, "onDanmaku")
 end sub
@@ -468,7 +472,28 @@ end sub
 sub onVideoPosition()
     m.danmaku.position = m.video.position
     if m.video.position > 0 then m.lastPosition = m.video.position
+    ' Save the resume point every 30 s of playback (covers leaving with the Home button).
+    if m.lastSavedAt = invalid or Abs(m.lastPosition - m.lastSavedAt) >= 30
+        m.lastSavedAt = m.lastPosition
+        savePosition(m.lastPosition)
+    end if
 end sub
+
+sub savePosition(posSec as Float)
+    if m.current = invalid or m.current.bvid = invalid or m.qualities = invalid and m.video.content = invalid then return
+    key = m.current.bvid + "_" + m.current.page.ToStr()
+    startTask("savePosition", { kind: "savePosition", key: key, atSec: Int(posSec), duration: Int(m.video.duration) }, "onPositionSaved")
+end sub
+
+sub onPositionSaved()
+end sub
+
+function clockText(totalSec as Float) as String
+    s = Int(totalSec)
+    text = Right("0" + ((s \ 60) mod 60).ToStr(), 2) + ":" + Right("0" + (s mod 60).ToStr(), 2)
+    if s >= 3600 then text = (s \ 3600).ToStr() + ":" + text
+    return text
+end function
 
 ' Streams sometimes stop mid-video (an "error", or "finished" well before the end).
 ' Reload the stream and continue from the last position, at most twice per video.
@@ -514,6 +539,7 @@ sub onVideoState()
         showVideoTitle(3)
     end if
     if state = "finished"
+        savePosition(0)
         ' Multi-part videos continue to the next part automatically.
         if m.current <> invalid and m.current.page < m.current.pageCount
             playTarget(m.current.bvid, (m.current.page + 1).ToStr(), m.current.title, "下一集…  Next part…")
@@ -535,6 +561,7 @@ sub onVideoState()
 end sub
 
 sub closeVideo()
+    if m.video.visible and m.lastPosition > 0 then savePosition(m.lastPosition)
     m.playToken = m.playToken + 1
     m.video.control = "stop"
     m.video.visible = false

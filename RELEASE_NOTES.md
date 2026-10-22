@@ -1,4 +1,6 @@
-**Fix:** pause, stop and the ±10 s seek buttons in the Bilibili app's cast (投屏) screen now work. The TV app was ignoring cast commands that didn't carry a video link.
+**New:** videos resume where you left off. The TV saves your place every 30 s and when you close a video (casts follow the phone's position).
+
+**Fix:** pause, stop, the ±10 s buttons and dragging the progress bar in the Bilibili app's cast (投屏) screen now work. The TV app was ignoring cast commands that didn't carry a video link.
 
 Update both parts: run the new companion, choose **1. Install / update 云屏**, then **3** to restart the cast receiver with the new version.
 

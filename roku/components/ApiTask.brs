@@ -23,6 +23,16 @@ sub run()
         m.top.response = qrGenerate()
     else if req.kind = "qrPoll"
         m.top.response = qrPoll(req.key)
+    else if req.kind = "savePosition"
+        ' Per-video resume points; dropped near the start or end so finished videos start fresh.
+        sec = CreateObject("roRegistrySection", "positions")
+        if req.atSec < 10 or (req.duration > 0 and req.atSec > req.duration - 30)
+            sec.Delete(req.key)
+        else
+            sec.Write(req.key, req.atSec.ToStr())
+        end if
+        sec.Flush()
+        m.top.response = { kind: "savePosition" }
     else if req.kind = "logout"
         sec = CreateObject("roRegistrySection", "auth")
         sec.Delete("cookie")
@@ -428,6 +438,13 @@ function resolvePlay(req as Object) as Object
     result.page = page
     result.pageCount = cids.Count()
     result.part = part
+
+    ' Resume where this video was left off. Casts follow the phone's position instead.
+    if wantCid = ""
+        positions = CreateObject("roRegistrySection", "positions")
+        key = result.bvid + "_" + page.ToStr()
+        if positions.Exists(key) then result.resumeAt = Val(positions.Read(key))
+    end if
 
     ' Logged in: DASH (1080p, up to 4K with 大会员). Logged out DASH stops at 480p, so MP4 720p is better.
     if CreateObject("roRegistrySection", "auth").Exists("cookie")
